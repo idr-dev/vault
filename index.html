@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vault — Crypto Exchange</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root{
+    --bg: #0A0B10;
+    --surface: #151824;
+    --surface-2: #1E2230;
+    --surface-3: #262B3D;
+    --text: #F2F4F8;
+    --text-dim: #8A93A6;
+    --text-faint: #565D70;
+    --violet: #5B5FEF;
+    --mint: #38E6C5;
+    --grad: linear-gradient(120deg, var(--violet), var(--mint));
+    --error: #FF6B6B;
+    --border: rgba(255,255,255,0.06);
+    --radius-lg: 24px;
+    --radius-md: 16px;
+    --radius-sm: 10px;
+  }
+
+  *{ box-sizing: border-box; margin:0; padding:0; }
+
+  html,body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 20% -10%, rgba(91,95,239,0.16), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(56,230,197,0.10), transparent 55%),
+      var(--bg);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    min-height:100vh;
+  }
+
+  /* ---------- header ---------- */
+  header{
+    width:100%;
+    max-width:1040px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 28px 24px 8px;
+  }
+  .logo{
+    display:flex; align-items:center; gap:10px;
+    font-weight:800; font-size:19px; letter-spacing:-0.02em;
+  }
+  .logo-mark{
+    width:30px; height:30px; border-radius:9px;
+    background: var(--grad);
+    position:relative;
+    flex-shrink:0;
+  }
+  .logo-mark::after{
+    content:"";
+    position:absolute; inset:8px;
+    border-radius:4px;
+    background: var(--bg);
+    clip-path: polygon(0 0, 100% 0, 100% 40%, 40% 40%, 40% 100%, 0 100%);
+  }
+
+  #walletBtn{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 11px 20px;
+    border-radius: 100px;
+    font-family:inherit;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+    display:flex; align-items:center; gap:8px;
+    transition: background .15s ease, transform .1s ease;
+  }
+  #walletBtn:hover{ background: var(--surface-3); }
+  #walletBtn:active{ transform: scale(0.97); }
+  #walletBtn .dot{
+    width:7px; height:7px; border-radius:50%;
+    background: var(--text-faint);
+  }
+  #walletBtn.connected .dot{ background: var(--mint); box-shadow: 0 0 8px var(--mint); }
+
+  /* ---------- main ---------- */
+  main{
+    width:100%;
+    max-width: 460px;
+    padding: 40px 20px 60px;
+    flex:1;
+  }
+
+  .headline{
+    text-align:center;
+    margin-bottom: 28px;
+  }
+  .headline h1{
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height:1.15;
+  }
+  .headline p{
+    color: var(--text-dim);
+    font-size: 15px;
+    margin-top:6px;
+  }
+
+  .card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 6px;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.5);
+  }
+
+  .field{
+    background: var(--surface-2);
+    border-radius: var(--radius-md);
+    padding: 18px 18px;
+    position:relative;
+  }
+  .field + .field{ margin-top: 4px; }
+
+  .field-label{
+    font-size:13px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    display:flex; justify-content:space-between;
+  }
+  .field-label .balance{ cursor:pointer; }
+  .field-label .balance:hover{ color: var(--text); }
+
+  .field-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+
+  .amount-input{
+    background:none;
+    border:none;
+    outline:none;
+    color: var(--text);
+    font-family:inherit;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing:-0.01em;
+    width:100%;
+    min-width:0;
+  }
+  .amount-input::placeholder{ color: var(--text-faint); }
+  .amount-input[readonly]{ color: var(--text-dim); }
+
+  .usd-sub{
+    font-size:13px;
+    color: var(--text-faint);
+    margin-top:4px;
+    min-height:16px;
+  }
+
+  .token-picker{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background: var(--surface-3);
+    border:none;
+    border-radius: 100px;
+    padding: 8px 14px 8px 8px;
+    color: var(--text);
+    font-family:inherit;
+    font-weight:700;
+    font-size:15px;
+    cursor:pointer;
+    flex-shrink:0;
+    transition: background .15s ease;
+  }
+  .token-picker:hover{ background: #2E3448; }
+  .token-icon{
+    width:26px; height:26px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:800;
+    color:#0A0B10;
+    flex-shrink:0;
+  }
+  .chev{ color: var(--text-dim); font-size:10px; margin-left:2px; }
+
+  .swap-divider{
+    position:relative;
+    height: 0;
+    display:flex; justify-content:center;
+  }
+  .swap-toggle{
+    position:absolute;
+    top:-20px;
+    width:40px; height:40px;
+    border-radius:12px;
+    background: var(--surface);
+    border: 4px solid var(--surface);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    z-index:2;
+  }
+  .swap-toggle-inner{
+    width:100%; height:100%;
+    background: var(--surface-3);
+    border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    color: var(--text);
+    font-size:15px;
+    transition: transform .2s ease, background .15s ease;
+  }
+  .swap-toggle:hover .swap-toggle-inner{ background: #2E3448; }
+  .swap-toggle.spin .swap-toggle-inner{ transform: rotate(180deg); }
+
+  /* ---------- details ---------- */
+  .details{
+    margin-top: 12px;
+    padding: 4px 12px;
+  }
+  .details-toggle{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 10px 4px;
+    cursor:pointer;
+    font-size:13px;
+    color: var(--text-dim);
+  }
+  .details-toggle .rate{ color: var(--text); font-weight:600; }
+  .details-toggle .chev{ transition: transform .2s ease; }
+  .details.open .details-toggle .chev{ transform: rotate(180deg); }
+
+  .details-body{
+    max-height:0;
+    overflow:hidden;
+    transition: max-height .25s ease;
+  }
+  .details.open .details-body{ max-height: 200px; }
+
+  .detail-row{
+    display:flex; justify-content:space-between;
+    font-size:13px;
+    padding: 6px 4px;
+    color: var(--text-dim);
+  }
+  .detail-row span:last-child{ color: var(--text); }
+
+  /* ---------- action button ---------- */
+  .action-btn{
+    width:100%;
+    margin-top: 12px;
+    padding: 18px;
+    border:none;
+    border-radius: var(--radius-md);
+    font-family:inherit;
+    font-size:17px;
+    font-weight:700;
+    cursor:pointer;
+    background: var(--grad);
+    color: #0A0B10;
+    transition: filter .15s ease, transform .1s ease, opacity .15s ease;
+  }
+  .action-btn:hover{ filter: brightness(1.08); }
+  .action-btn:active{ transform: scale(0.99); }
+  .action-btn:disabled{
+    background: var(--surface-3);
+    color: var(--text-faint);
+    cursor:not-allowed;
+    filter:none;
+  }
+  .action-btn.err{ background: var(--error); color:#1a0000; }
+
+  .fee-note{
+    text-align:center;
+    font-size:12.5px;
+    color: var(--text-faint);
+    margin-top:16px;
+    line-height:1.5;
+  }
+  .fee-note b{ color: var(--text-dim); font-weight:600; }
+
+  /* ---------- token modal ---------- */
+  .overlay{
+    position:fixed; inset:0;
+    background: rgba(5,6,10,0.7);
+    backdrop-filter: blur(4px);
+    display:none;
+    align-items:center; justify-content:center;
+    z-index:50;
+    padding:20px;
+  }
+  .overlay.show{ display:flex; }
+  .modal{
+    width:100%; max-width:380px;
+    background: var(--surface);
+    border:1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding:20px;
+    max-height:70vh;
+    display:flex; flex-direction:column;
+  }
+  .modal h3{ font-size:17px; margin-bottom:14px; }
+  .modal-search{
+    background: var(--surface-2);
+    border:none; outline:none;
+    border-radius: var(--radius-sm);
+    padding:12px 14px;
+    color:var(--text);
+    font-family:inherit;
+    font-size:14px;
+    margin-bottom:10px;
+  }
+  .token-list{ overflow-y:auto; }
+  .token-row{
+    display:flex; align-items:center; gap:12px;
+    padding: 10px 8px;
+    border-radius: var(--radius-sm);
+    cursor:pointer;
+  }
+  .token-row:hover{ background: var(--surface-2); }
+  .token-row .token-icon{ width:34px; height:34px; font-size:14px; }
+  .token-row .tname{ font-weight:600; font-size:14.5px; }
+  .token-row .tsym{ color: var(--text-dim); font-size:12.5px; }
+
+  /* ---------- settings ---------- */
+  .settings-link{
+    display:block;
+    text-align:center;
+    margin-top:22px;
+    font-size:12.5px;
+    color: var(--text-faint);
+    cursor:pointer;
+    text-decoration:underline;
+    text-underline-offset:3px;
+  }
+  .settings-link:hover{ color: var(--text-dim); }
+  .settings-body label{
+    display:block;
+    font-size:12.5px;
+    color: var(--text-dim);
+    margin: 14px 0 6px;
+  }
+  .settings-body input{
+    width:100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    outline:none;
+    border-radius: var(--radius-sm);
+    padding: 11px 13px;
+    color: var(--text);
+    font-family:inherit;
+    font-size:13.5px;
+  }
+  .settings-hint{ font-size:11.5px; color:var(--text-faint); margin-top:5px; line-height:1.5; }
+  .settings-save{
+    margin-top:18px;
+    width:100%;
+    padding:13px;
+    border:none;
+    border-radius: var(--radius-sm);
+    background: var(--surface-3);
+    color: var(--text);
+    font-family:inherit; font-weight:700; font-size:14px;
+    cursor:pointer;
+  }
+  .settings-save:hover{ background:#2E3448; }
+
+  /* ---------- toast ---------- */
+  #toast{
+    position:fixed;
+    bottom:24px; left:50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface-3);
+    border:1px solid var(--border);
+    padding: 13px 20px;
+    border-radius: 100px;
+    font-size:13.5px;
+    opacity:0;
+    pointer-events:none;
+    transition: opacity .2s ease, transform .2s ease;
+    max-width: 90vw;
+    text-align:center;
+    z-index:100;
+  }
+  #toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
+
+  footer{
+    color: var(--text-faint);
+    font-size:12px;
+    padding: 20px;
+    text-align:center;
+  }
+
+  @media (max-width:480px){
+    .headline h1{ font-size:26px; }
+    .amount-input{ font-size:26px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark"></div>
+    Vault
+  </div>
+  <button id="walletBtn"><span class="dot"></span><span id="walletLabel">Connect wallet</span></button>
+</header>
+
+<main>
+  <div class="headline">
+    <h1>Trade crypto,<br>instantly.</h1>
+    <p>Best prices routed across every major exchange.</p>
+  </div>
+
+  <div class="card">
+    <div class="field">
+      <div class="field-label">
+        <span>Sell</span>
+        <span class="balance" id="sellBalance"></span>
+      </div>
+      <div class="field-row">
+        <input type="text" inputmode="decimal" class="amount-input" id="sellAmount" placeholder="0">
+        <button class="token-picker" id="sellPicker"></button>
+      </div>
+      <div class="usd-sub" id="sellUsd"></div>
+    </div>
+
+    <div class="swap-divider">
+      <div class="swap-toggle" id="swapToggle"><div class="swap-toggle-inner">⇅</div></div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">
+        <span>Buy</span>
+        <span class="balance" id="buyBalance"></span>
+      </div>
+      <div class="field-row">
+        <input type="text" class="amount-input" id="buyAmount" placeholder="0" readonly>
+        <button class="token-picker" id="buyPicker"></button>
+      </div>
+      <div class="usd-sub" id="buyUsd"></div>
+    </div>
+
+    <div class="details" id="details">
+      <div class="details-toggle" id="detailsToggle">
+        <span><span class="rate" id="rateText">—</span></span>
+        <span class="chev">▾</span>
+      </div>
+      <div class="details-body">
+        <div class="detail-row"><span>Vault fee (0.05%)</span><span id="feeAmount">—</span></div>
+        <div class="detail-row"><span>Network fee (est.)</span><span id="gasAmount">—</span></div>
+        <div class="detail-row"><span>Minimum received</span><span id="minReceived">—</span></div>
+      </div>
+    </div>
+
+    <button class="action-btn" id="actionBtn" disabled>Enter an amount</button>
+  </div>
+
+  <p class="fee-note"><b>0.05%</b> fee on every trade. No hidden spreads, no subscriptions — the quote you see is the price you get.</p>
+</main>
+
+<footer>Vault routes trades through 0x's liquidity aggregator. Not financial advice. Verify every transaction in your wallet before signing.</footer>
+
+<!-- token select modal -->
+<div class="overlay" id="tokenOverlay">
+  <div class="modal">
+    <h3>Select a token</h3>
+    <input class="modal-search" id="tokenSearch" placeholder="Search name or symbol">
+    <div class="token-list" id="tokenList"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+/* ============================================================
+   VAULT — a 0x-powered swap interface
+   ============================================================
+   Fee model: 0x's Swap API supports a built-in affiliate fee via
+   `swapFeeBps` / `swapFeeRecipient` / `swapFeeToken`. Vault sets
+   swapFeeBps = 5 (0.05%), so the fee is collected atomically by
+   the 0x settlement contract as part of the trade itself — Vault
+   never custodies user funds.
+
+   Pricing vs. quoting: 0x's permit2 API has two endpoints —
+   `/price` (indicative, no wallet/taker required — used here for
+   live typing) and `/quote` (a signable, executable transaction,
+   which DOES require a connected wallet as `taker`). Fetching
+   `/quote` with no taker is what was causing the errors before —
+   we now only call `/quote` right at trade execution.
+
+   Wallet connection: uses Reown AppKit (WalletConnect) so wallets
+   connect properly on iOS/iPadOS Safari, which never exposes an
+   injected `window.ethereum` the way desktop Chrome extensions do.
+   AppKit shows a QR code on desktop and switches to the wallet app
+   natively on mobile. If no Reown project ID is configured below,
+   Vault falls back to the old direct-injected-wallet flow so the
+   app still works while you're setting things up.
+   ============================================================ */
+
+import { createAppKit } from "https://esm.sh/@reown/appkit@1.8.23";
+import { EthersAdapter } from "https://esm.sh/@reown/appkit-adapter-ethers@1.8.23";
+import { mainnet } from "https://esm.sh/@reown/appkit@1.8.23/networks";
+
+// --- Developer config — set before deploying. ---
+const CONFIG = {
+  REOWN_PROJECT_ID: "48fef7dd958aa0828a5daebf13b9cd75",   // free at cloud.reown.com — enables WalletConnect. Safe to keep client-side.
+};
+// The 0x API key and fee-recipient wallet live server-side only now —
+// see /api/0x.js (Vercel) or /netlify/functions/0x.js (Netlify).
+// They are never sent to, or present in, this file or the browser.
+
+const CHAIN_ID = 1; // Ethereum mainnet
+const FEE_BPS = 5;  // 0.05% = 5 basis points (1 bps = 0.01%)
+
+const TOKENS = [
+  { symbol:"ETH",  name:"Ethereum",     address:"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", decimals:18, color:"#8A9BFF" },
+  { symbol:"WETH", name:"Wrapped Ether",address:"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", decimals:18, color:"#8A9BFF" },
+  { symbol:"USDC", name:"USD Coin",     address:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", decimals:6,  color:"#2775CA" },
+  { symbol:"USDT", name:"Tether USD",   address:"0xdAC17F958D2ee523a2206206994597C13D831ec7", decimals:6,  color:"#26A17B" },
+  { symbol:"DAI",  name:"Dai Stablecoin",address:"0x6B175474E89094C44Da98b954EedeAC495271d0F",decimals:18, color:"#F5AC37" },
+  { symbol:"WBTC", name:"Wrapped Bitcoin",address:"0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",decimals:8, color:"#F7931A" },
+  { symbol:"MATIC",name:"Polygon",      address:"0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0", decimals:18, color:"#8247E5" },
+  { symbol:"UNI",  name:"Uniswap",      address:"0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", decimals:18, color:"#FF007A" },
+  { symbol:"LINK", name:"Chainlink",    address:"0x514910771AF9Ca656af840dff83E8264EcF986CA", decimals:18, color:"#2A5ADA" },
+  { symbol:"ARB",  name:"Arbitrum",     address:"0xB50721BCf8d664c30412Cfbc6cf7a15145234ad1", decimals:18, color:"#28A0F0" },
+];
+
+let state = {
+  sellToken: TOKENS[0],
+  buyToken: TOKENS[2],
+  sellAmount: "",
+  quote: null,
+  wallet: null,
+  provider: null,
+  signer: null,
+  pickerTarget: null,
+  quoteTimer: null,
+};
+
+// ---------- helpers ----------
+const $ = id => document.getElementById(id);
+const fmt = (n, d=6) => {
+  if (n === null || n === undefined || isNaN(n)) return "";
+  const num = Number(n);
+  if (num === 0) return "0";
+  if (num < 0.0001) return num.toExponential(2);
+  return num.toLocaleString(undefined, { maximumFractionDigits: d });
+};
+
+function toast(msg, isErr=false){
+  const t = $("toast");
+  t.textContent = msg;
+  t.style.borderColor = isErr ? "rgba(255,107,107,0.4)" : "var(--border)";
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>t.classList.remove("show"), 3200);
+}
+
+function explainNetworkError(err){
+  const isNetworkLevel = err instanceof TypeError ||
+    /load failed|failed to fetch|network/i.test(err.message || "");
+  if (isNetworkLevel){
+    if (window.location.protocol === "file:"){
+      return "Can't reach the price feed — this page is open as a local file. Host it at a real https:// address (GitHub Pages, Netlify, Vercel, etc.) and open it from there.";
+    }
+    return "Can't reach /api/0x — make sure the proxy function is deployed (see api/0x.js) and ZEROX_API_KEY is set in your host's environment variables.";
+  }
+  if (err.message === "SERVER_NOT_CONFIGURED" || /ZEROX_API_KEY is not set/i.test(err.message || "")){
+    return "Server isn't configured yet — set ZEROX_API_KEY in your hosting provider's environment variables.";
+  }
+  return err.message || "Couldn't fetch a price right now.";
+}
+
+function tokenIconHTML(t, size){
+  return `<div class="token-icon" style="background:${t.color}">${t.symbol.slice(0,1)}</div>`;
+}
+
+function renderPickers(){
+  $("sellPicker").innerHTML = `${tokenIconHTML(state.sellToken)}<span>${state.sellToken.symbol}</span><span class="chev">▾</span>`;
+  $("buyPicker").innerHTML = `${tokenIconHTML(state.buyToken)}<span>${state.buyToken.symbol}</span><span class="chev">▾</span>`;
+}
+
+// ---------- token modal ----------
+function openTokenModal(target){
+  state.pickerTarget = target;
+  $("tokenSearch").value = "";
+  renderTokenList("");
+  $("tokenOverlay").classList.add("show");
+  $("tokenSearch").focus();
+}
+function renderTokenList(query){
+  const q = query.trim().toLowerCase();
+  const list = TOKENS.filter(t => t.symbol.toLowerCase().includes(q) || t.name.toLowerCase().includes(q));
+  $("tokenList").innerHTML = list.map(t => `
+    <div class="token-row" data-symbol="${t.symbol}">
+      <div class="token-icon" style="background:${t.color};width:34px;height:34px;font-size:14px">${t.symbol.slice(0,1)}</div>
+      <div>
+        <div class="tname">${t.symbol}</div>
+        <div class="tsym">${t.name}</div>
+      </div>
+    </div>
+  `).join("");
+  document.querySelectorAll(".token-row").forEach(row=>{
+    row.onclick = () => selectToken(row.dataset.symbol);
+  });
+}
+function selectToken(symbol){
+  const token = TOKENS.find(t => t.symbol === symbol);
+  if (state.pickerTarget === "sell"){
+    if (token.symbol === state.buyToken.symbol){ state.buyToken = state.sellToken; }
+    state.sellToken = token;
+  } else {
+    if (token.symbol === state.sellToken.symbol){ state.sellToken = state.buyToken; }
+    state.buyToken = token;
+  }
+  renderPickers();
+  $("tokenOverlay").classList.remove("show");
+  scheduleQuote();
+  refreshBalances();
+}
+
+$("sellPicker").onclick = () => openTokenModal("sell");
+$("buyPicker").onclick = () => openTokenModal("buy");
+$("tokenOverlay").onclick = (e)=>{ if(e.target.id==="tokenOverlay") $("tokenOverlay").classList.remove("show"); };
+$("tokenSearch").oninput = (e)=> renderTokenList(e.target.value);
+
+// ---------- swap direction ----------
+$("swapToggle").onclick = () => {
+  [state.sellToken, state.buyToken] = [state.buyToken, state.sellToken];
+  state.sellAmount = $("buyAmount").value || "";
+  $("sellAmount").value = state.sellAmount;
+  $("buyAmount").value = "";
+  renderPickers();
+  $("swapToggle").classList.toggle("spin");
+  scheduleQuote();
+  refreshBalances();
+};
+
+// ---------- details disclosure ----------
+$("detailsToggle").onclick = () => $("details").classList.toggle("open");
+
+// ---------- wallet ----------
+function reownProjectIdConfigured(){
+  return CONFIG.REOWN_PROJECT_ID && !CONFIG.REOWN_PROJECT_ID.includes("YOUR_REOWN_PROJECT_ID");
+}
+
+function isMobileDevice(){
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+         (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); // iPadOS reports as Mac
+}
+
+function openInWalletBrowser(walletName){
+  const href = window.location.href;
+  if (!href.startsWith("http")){
+    toast("This page needs to be hosted at a real https:// address (not opened as a local file) for wallet apps to open it. Host it online, then open that link instead.", true);
+    return;
+  }
+  const bare = href.replace(/^https?:\/\//, "");
+  const links = {
+    metamask: `https://metamask.app.link/dapp/${bare}`,
+    coinbase: `https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(href)}`,
+  };
+  window.location.href = links[walletName];
+}
+
+function showMobileWalletChoices(){
+  const overlay = document.createElement("div");
+  overlay.className = "overlay show";
+  overlay.innerHTML = `
+    <div class="modal" style="max-width:340px">
+      <h3>Open with a wallet app</h3>
+      <div class="token-list">
+        <div class="token-row" id="mm-row">
+          <div class="token-icon" style="background:#F6851B;font-size:14px;width:34px;height:34px">M</div>
+          <div><div class="tname">MetaMask</div><div class="tsym">Opens this page in the MetaMask app</div></div>
+        </div>
+        <div class="token-row" id="cb-row">
+          <div class="token-icon" style="background:#0052FF;font-size:14px;width:34px;height:34px">C</div>
+          <div><div class="tname">Coinbase Wallet</div><div class="tsym">Opens this page in Coinbase Wallet</div></div>
+        </div>
+      </div>
+      <div class="settings-hint" style="margin-top:12px">iOS and iPadOS Safari don't support in-page wallet connections directly — your wallet app needs to open this page itself in its built-in browser.</div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  overlay.querySelector("#mm-row").onclick = () => openInWalletBrowser("metamask");
+  overlay.querySelector("#cb-row").onclick = () => openInWalletBrowser("coinbase");
+}
+
+// Fallback path — only used if REOWN_PROJECT_ID isn't configured. Relies
+// on a browser-injected wallet, so it won't work in plain iOS/iPadOS
+// Safari (see showMobileWalletChoices for that case).
+async function legacyWalletConnect(){
+  if (state.wallet){
+    state.wallet = null; state.provider = null; state.signer = null;
+    $("walletBtn").classList.remove("connected");
+    $("walletLabel").textContent = "Connect wallet";
+    updateActionButton();
+    refreshBalances();
+    return;
+  }
+  if (!window.ethereum){
+    if (isMobileDevice()){
+      showMobileWalletChoices();
+    } else {
+      toast("No wallet found. Install MetaMask or another injected wallet to trade.", true);
+    }
+    return;
+  }
+  try{
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const signer = provider.getSigner();
+    const address = await signer.getAddress();
+    state.provider = provider;
+    state.signer = signer;
+    state.wallet = address;
+    $("walletBtn").classList.add("connected");
+    $("walletLabel").textContent = address.slice(0,6) + "…" + address.slice(-4);
+    toast("Wallet connected");
+    refreshBalances();
+    updateActionButton();
+  }catch(err){
+    toast("Wallet connection was cancelled or failed.", true);
+  }
+}
+
+// Reown AppKit (WalletConnect) — the primary path. Shows a QR code on
+// desktop and hands off to the wallet app natively on mobile, which is
+// what makes this work in regular iOS/iPadOS Safari (no injected
+// window.ethereum required).
+let appKitModal = null;
+if (reownProjectIdConfigured()){
+  try{
+    appKitModal = createAppKit({
+      adapters: [new EthersAdapter()],
+      networks: [mainnet],
+      projectId: CONFIG.REOWN_PROJECT_ID,
+      metadata: {
+        name: "Vault",
+        description: "Trade crypto, instantly.",
+        url: window.location.origin, // must match the domain this page is hosted on
+        icons: ["https://avatars.githubusercontent.com/u/179229932"], // swap for your own logo URL
+      },
+      features: { analytics: false },
+    });
+
+    appKitModal.subscribeProvider((s) => {
+      if (s.isConnected && s.provider && s.address){
+        state.provider = new ethers.providers.Web3Provider(s.provider);
+        state.signer = state.provider.getSigner();
+        state.wallet = s.address;
+        $("walletBtn").classList.add("connected");
+        $("walletLabel").textContent = s.address.slice(0,6) + "…" + s.address.slice(-4);
+        refreshBalances();
+      } else {
+        state.provider = null; state.signer = null; state.wallet = null;
+        $("walletBtn").classList.remove("connected");
+        $("walletLabel").textContent = "Connect wallet";
+      }
+      updateActionButton();
+    });
+  }catch(err){
+    console.error("Reown AppKit failed to initialize:", err);
+    appKitModal = null;
+  }
+}
+
+$("walletBtn").onclick = () => {
+  if (!appKitModal){
+    legacyWalletConnect();
+    return;
+  }
+  if (state.wallet){
+    appKitModal.open({ view: "Account" }); // lets the user disconnect from Reown's own UI
+  } else {
+    appKitModal.open({ view: "Connect", namespace: "eip155" });
+  }
+};
+
+async function refreshBalances(){
+  $("sellBalance").textContent = "";
+  $("buyBalance").textContent = "";
+  if (!state.wallet || !state.provider) return;
+  try{
+    for (const [key, token] of [["sellBalance", state.sellToken], ["buyBalance", state.buyToken]]){
+      let bal;
+      if (token.symbol === "ETH"){
+        bal = await state.provider.getBalance(state.wallet);
+        bal = ethers.utils.formatUnits(bal, 18);
+      } else {
+        const erc20 = new ethers.Contract(token.address, ["function balanceOf(address) view returns (uint256)"], state.provider);
+        const raw = await erc20.balanceOf(state.wallet);
+        bal = ethers.utils.formatUnits(raw, token.decimals);
+      }
+      $(key).textContent = "Balance: " + fmt(bal, 4);
+    }
+  }catch(e){ /* silent — balance display is best-effort */ }
+}
+
+// ---------- quoting ----------
+$("sellAmount").oninput = (e) => {
+  // sanitize to numeric
+  let v = e.target.value.replace(/[^0-9.]/g, "");
+  const parts = v.split(".");
+  if (parts.length > 2) v = parts[0] + "." + parts.slice(1).join("");
+  e.target.value = v;
+  state.sellAmount = v;
+  scheduleQuote();
+};
+
+function scheduleQuote(){
+  clearTimeout(state.quoteTimer);
+  $("buyUsd").textContent = "";
+  $("sellUsd").textContent = "";
+  const amt = parseFloat(state.sellAmount);
+  if (!amt || amt <= 0){
+    $("buyAmount").value = "";
+    state.quote = null;
+    resetDetails();
+    updateActionButton();
+    return;
+  }
+  $("actionBtn").textContent = "Fetching best price…";
+  $("actionBtn").disabled = true;
+  state.quoteTimer = setTimeout(fetchQuote, 450);
+}
+
+function resetDetails(){
+  $("rateText").textContent = "—";
+  $("feeAmount").textContent = "—";
+  $("gasAmount").textContent = "—";
+  $("minReceived").textContent = "—";
+}
+
+function buildParams(amt, extra={}){
+  const sellAmountRaw = ethers.utils.parseUnits(
+    amt.toFixed(state.sellToken.decimals > 18 ? 18 : state.sellToken.decimals),
+    state.sellToken.decimals
+  ).toString();
+
+  // Note: swapFeeBps and swapFeeRecipient are NOT sent from here —
+  // the proxy (/api/0x.js) sets those itself from server-side env vars,
+  // so they can't be tampered with by anything running in the browser.
+  return new URLSearchParams({
+    chainId: String(CHAIN_ID),
+    sellToken: state.sellToken.address,
+    buyToken: state.buyToken.address,
+    sellAmount: sellAmountRaw,
+    swapFeeToken: state.buyToken.address,
+    ...extra,
+  });
+}
+
+// Live pricing as the user types — uses `type=price`, which is indicative
+// only and does NOT require a connected wallet.
+async function fetchQuote(){
+  const amt = parseFloat(state.sellAmount);
+  if (!amt || amt <= 0) return;
+
+  try{
+    const params = buildParams(amt);
+    const res = await fetch(`${PROXY_URL}?type=price&${params.toString()}`);
+    const data = await res.json();
+
+    if (!res.ok || data.code){
+      throw new Error(data.reason || data.validationErrors?.[0]?.reason || data.description || "Couldn't fetch a price right now.");
+    }
+
+    state.quote = data; // indicative — re-fetched as a real /quote at execution time
+    const buyAmt = ethers.utils.formatUnits(data.buyAmount, state.buyToken.decimals);
+    $("buyAmount").value = fmt(buyAmt, 6);
+
+    const rate = (parseFloat(buyAmt) / amt);
+    $("rateText").textContent = `1 ${state.sellToken.symbol} = ${fmt(rate, 6)} ${state.buyToken.symbol}`;
+
+    const feeInBuyToken = amt * rate * (FEE_BPS/10000);
+    $("feeAmount").textContent = `${fmt(feeInBuyToken, 6)} ${state.buyToken.symbol}`;
+
+    if (data.totalNetworkFee){
+      const gasEth = ethers.utils.formatEther(data.totalNetworkFee);
+      $("gasAmount").textContent = `~${fmt(gasEth, 5)} ETH`;
+    } else {
+      $("gasAmount").textContent = "Shown before you sign";
+    }
+
+    const slippageBuffer = 0.995; // display-only estimate; the real /quote applies actual slippage settings
+    $("minReceived").textContent = `${fmt(parseFloat(buyAmt) * slippageBuffer, 6)} ${state.buyToken.symbol}`;
+
+    updateActionButton();
+  }catch(err){
+    $("buyAmount").value = "";
+    resetDetails();
+    $("actionBtn").textContent = explainNetworkError(err);
+    $("actionBtn").classList.add("err");
+    $("actionBtn").disabled = true;
+    setTimeout(()=>$("actionBtn").classList.remove("err"), 2500);
+  }
+}
+
+// ---------- action button state ----------
+function updateActionButton(){
+  const btn = $("actionBtn");
+  btn.onclick = executeSwap;
+  const amt = parseFloat(state.sellAmount);
+  if (!amt || amt <= 0){
+    btn.textContent = "Enter an amount"; btn.disabled = true; return;
+  }
+  if (!state.quote){
+    btn.textContent = "Fetching best price…"; btn.disabled = true; return;
+  }
+  if (!state.wallet){
+    btn.textContent = "Connect wallet to trade"; btn.disabled = false;
+    btn.onclick = () => $("walletBtn").click();
+    return;
+  }
+  btn.textContent = `Trade ${state.sellToken.symbol} for ${state.buyToken.symbol}`;
+  btn.disabled = false;
+}
+
+// ---------- execute swap ----------
+async function executeSwap(){
+  if (!state.signer || !state.wallet) return;
+  const btn = $("actionBtn");
+  btn.disabled = true;
+  try{
+    // Re-fetch as an executable /quote now that we have a taker —
+    // this is the step that returns real signable transaction data.
+    btn.textContent = "Preparing trade…";
+    const amt = parseFloat(state.sellAmount);
+    const params = buildParams(amt, { taker: state.wallet });
+    const res = await fetch(`${PROXY_URL}?type=quote&${params.toString()}`);
+    const freshQuote = await res.json();
+    if (!res.ok || freshQuote.code){
+      throw new Error(freshQuote.reason || freshQuote.validationErrors?.[0]?.reason || freshQuote.description || "Couldn't prepare the trade.");
+    }
+    state.quote = freshQuote;
+
+    btn.textContent = "Confirm in your wallet…";
+
+    // ERC20 approval to Permit2, if needed (skip for native ETH)
+    if (state.sellToken.symbol !== "ETH" && state.quote.issues?.allowance){
+      const spender = state.quote.issues.allowance.spender;
+      const erc20 = new ethers.Contract(
+        state.sellToken.address,
+        ["function approve(address spender, uint256 amount) returns (bool)"],
+        state.signer
+      );
+      const tx = await erc20.approve(spender, ethers.constants.MaxUint256);
+      toast("Approving token — confirm the second prompt to trade.");
+      await tx.wait();
+    }
+
+    // Sign Permit2 EIP-712 message if the quote requires it
+    let signature;
+    if (state.quote.permit2?.eip712){
+      signature = await state.signer._signTypedData(
+        state.quote.permit2.eip712.domain,
+        state.quote.permit2.eip712.types,
+        state.quote.permit2.eip712.message
+      );
+    }
+
+    let txData = state.quote.transaction.data;
+    if (signature){
+      const sigLengthHex = ethers.utils.hexZeroPad(
+        ethers.utils.hexlify(ethers.utils.arrayify(signature).length), 32
+      );
+      txData = ethers.utils.hexConcat([txData, sigLengthHex, signature]);
+    }
+
+    const txRequest = {
+      to: state.quote.transaction.to,
+      data: txData,
+      value: state.quote.transaction.value ? ethers.BigNumber.from(state.quote.transaction.value) : 0,
+    };
+
+    btn.textContent = "Confirm the trade in your wallet…";
+    const sentTx = await state.signer.sendTransaction(txRequest);
+    toast("Trade submitted — waiting for confirmation…");
+    btn.textContent = "Trade submitted…";
+    await sentTx.wait();
+    toast("Trade complete ✓");
+    btn.textContent = "Trade complete ✓";
+    setTimeout(()=>{
+      state.sellAmount = ""; $("sellAmount").value = "";
+      $("buyAmount").value = "";
+      state.quote = null;
+      resetDetails();
+      updateActionButton();
+      refreshBalances();
+    }, 1600);
+  }catch(err){
+    toast(err.message?.includes("user rejected") ? "Trade cancelled" : explainNetworkError(err), true);
+    updateActionButton();
+  }
+}
+
+// ---------- init ----------
+renderPickers();
+resetDetails();
+updateActionButton();
+if (!reownProjectIdConfigured()){
+  setTimeout(()=> toast("No Reown project ID set — wallet connect will fall back to injected wallets only (won't work in plain iOS Safari)."), 600);
+}
+</script>
+</body>
+</html>
