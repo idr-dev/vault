@@ -896,33 +896,48 @@ function resetDetails(){
 }
 
 function buildParams(amt, extra={}){
-  const sellAmountRaw = ethers.utils.parseUnits(
-    amt.toFixed(state.sellToken.decimals > 18 ? 18 : state.sellToken.decimals),
-    state.sellToken.decimals
-  ).toString();
+  const fixedStr = step("buildParams:toFixed", () =>
+    amt.toFixed(state.sellToken.decimals > 18 ? 18 : state.sellToken.decimals)
+  );
+  const sellAmountRaw = step("buildParams:parseUnits", () =>
+    ethers.utils.parseUnits(fixedStr, state.sellToken.decimals).toString()
+  );
 
   // Note: swapFeeBps and swapFeeRecipient are NOT sent from here —
   // the proxy (/api/0x.js) sets those itself from server-side env vars,
   // so they can't be tampered with by anything running in the browser.
-  return new URLSearchParams({
+  return step("buildParams:new URLSearchParams", () => new URLSearchParams({
     chainId: String(CHAIN_ID),
     sellToken: state.sellToken.address,
     buyToken: state.buyToken.address,
     sellAmount: sellAmountRaw,
     swapFeeToken: state.buyToken.address,
     ...extra,
-  });
+  }));
 }
 
 // Live pricing as the user types — uses `type=price`, which is indicative
 // only and does NOT require a connected wallet.
+// Runs fn() and, if it throws, tags the error with a step label before
+// rethrowing — lets us pinpoint exactly which operation failed instead of
+// just which function.
+function step(label, fn){
+  try{
+    return fn();
+  }catch(err){
+    if (!err.debugStep) err.debugStep = label; // keep the innermost (most specific) label
+    throw err;
+  }
+}
+
 async function fetchQuote(){
   const amt = parseFloat(state.sellAmount);
   if (!amt || amt <= 0) return;
 
   try{
-    const params = buildParams(amt);
-    const res = await fetch(`${PROXY_URL}?type=price&${params.toString()}`);
+    const params = step("buildParams", () => buildParams(amt));
+    const url = step("build fetch URL", () => `${PROXY_URL}?type=price&${params.toString()}`);
+    const res = await fetch(url);
     const data = await res.json();
 
     if (!res.ok || data.code){
@@ -930,28 +945,30 @@ async function fetchQuote(){
     }
 
     state.quote = data; // indicative — re-fetched as a real /quote at execution time
-    const buyAmt = ethers.utils.formatUnits(data.buyAmount, state.buyToken.decimals);
-    $("buyAmount").value = fmt(buyAmt, 6);
+    const buyAmt = step("formatUnits(buyAmount)", () => ethers.utils.formatUnits(data.buyAmount, state.buyToken.decimals));
+    step("set buyAmount field", () => { $("buyAmount").value = fmt(buyAmt, 6); });
 
     const rate = (parseFloat(buyAmt) / amt);
-    $("rateText").textContent = `1 ${state.sellToken.symbol} = ${fmt(rate, 6)} ${state.buyToken.symbol}`;
+    step("set rateText", () => { $("rateText").textContent = `1 ${state.sellToken.symbol} = ${fmt(rate, 6)} ${state.buyToken.symbol}`; });
 
     const feeInBuyToken = amt * rate * (FEE_BPS/10000);
-    $("feeAmount").textContent = `${fmt(feeInBuyToken, 6)} ${state.buyToken.symbol}`;
+    step("set feeAmount", () => { $("feeAmount").textContent = `${fmt(feeInBuyToken, 6)} ${state.buyToken.symbol}`; });
 
     if (data.totalNetworkFee){
-      const gasEth = ethers.utils.formatEther(data.totalNetworkFee);
-      $("gasAmount").textContent = `~${fmt(gasEth, 5)} ETH`;
+      step("set gasAmount", () => {
+        const gasEth = ethers.utils.formatEther(data.totalNetworkFee);
+        $("gasAmount").textContent = `~${fmt(gasEth, 5)} ETH`;
+      });
     } else {
       $("gasAmount").textContent = "Shown before you sign";
     }
 
     const slippageBuffer = 0.995; // display-only estimate; the real /quote applies actual slippage settings
-    $("minReceived").textContent = `${fmt(parseFloat(buyAmt) * slippageBuffer, 6)} ${state.buyToken.symbol}`;
+    step("set minReceived", () => { $("minReceived").textContent = `${fmt(parseFloat(buyAmt) * slippageBuffer, 6)} ${state.buyToken.symbol}`; });
 
     updateActionButton();
   }catch(err){
-    showDebugInfo("fetchQuote", err);
+    showDebugInfo(`fetchQuote${err.debugStep ? " → " + err.debugStep : ""}`, err);
     $("buyAmount").value = "";
     resetDetails();
     $("actionBtn").textContent = explainNetworkError(err);
