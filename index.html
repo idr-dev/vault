@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vault — Crypto Exchange</title>
+<title>57eX — Crypto Exchange</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -434,7 +434,7 @@
 <header>
   <div class="logo">
     <div class="logo-mark"></div>
-    Vault
+    57eX
   </div>
   <button id="walletBtn"><span class="dot"></span><span id="walletLabel">Connect wallet</span></button>
 </header>
@@ -480,7 +480,7 @@
         <span class="chev">▾</span>
       </div>
       <div class="details-body">
-        <div class="detail-row"><span>Vault fee (0.05%)</span><span id="feeAmount">—</span></div>
+        <div class="detail-row"><span>57eX fee (0.05%)</span><span id="feeAmount">—</span></div>
         <div class="detail-row"><span>Network fee (est.)</span><span id="gasAmount">—</span></div>
         <div class="detail-row"><span>Minimum received</span><span id="minReceived">—</span></div>
       </div>
@@ -492,7 +492,7 @@
   <p class="fee-note"><b>0.05%</b> fee on every trade. No hidden spreads, no subscriptions — the quote you see is the price you get.</p>
 </main>
 
-<footer>Vault routes trades through 0x's liquidity aggregator. Not financial advice. Verify every transaction in your wallet before signing.</footer>
+<footer>57eX routes trades through 0x's liquidity aggregator. Not financial advice. Verify every transaction in your wallet before signing.</footer>
 
 <!-- token select modal -->
 <div class="overlay" id="tokenOverlay">
@@ -507,12 +507,12 @@
 
 <script type="module">
 /* ============================================================
-   VAULT — a 0x-powered swap interface
+   57eX — a 0x-powered swap interface
    ============================================================
    Fee model: 0x's Swap API supports a built-in affiliate fee via
-   `swapFeeBps` / `swapFeeRecipient` / `swapFeeToken`. Vault sets
+   `swapFeeBps` / `swapFeeRecipient` / `swapFeeToken`. 57eX sets
    swapFeeBps = 5 (0.05%), so the fee is collected atomically by
-   the 0x settlement contract as part of the trade itself — Vault
+   the 0x settlement contract as part of the trade itself — 57eX
    never custodies user funds.
 
    Pricing vs. quoting: 0x's permit2 API has two endpoints —
@@ -527,7 +527,7 @@
    injected `window.ethereum` the way desktop Chrome extensions do.
    AppKit shows a QR code on desktop and switches to the wallet app
    natively on mobile. If no Reown project ID is configured below,
-   Vault falls back to the old direct-injected-wallet flow so the
+   57eX falls back to the old direct-injected-wallet flow so the
    app still works while you're setting things up.
    ============================================================ */
 
@@ -799,7 +799,7 @@ if (reownProjectIdConfigured()){
       networks: [mainnet],
       projectId: CONFIG.REOWN_PROJECT_ID,
       metadata: {
-        name: "Vault",
+        name: "57eX",
         description: "Trade crypto, instantly.",
         url: window.location.origin, // must match the domain this page is hosted on
         icons: ["https://avatars.githubusercontent.com/u/179229932"], // swap for your own logo URL
