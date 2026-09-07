@@ -45,6 +45,53 @@
     flex-direction:column;
     align-items:center;
     min-height:100vh;
+    padding-top: 38px;
+  }
+
+  /* ---------- price ticker ---------- */
+  .ticker-bar{
+    position:fixed;
+    top:0; left:0; right:0;
+    height:38px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow:hidden;
+    z-index:60;
+    display:flex;
+    align-items:center;
+  }
+  .ticker-track{
+    display:flex;
+    align-items:center;
+    white-space:nowrap;
+    animation: tickerScroll 45s linear infinite;
+    will-change: transform;
+  }
+  .ticker-bar:hover .ticker-track{ animation-play-state: paused; }
+  @keyframes tickerScroll{
+    from{ transform: translateX(0); }
+    to{ transform: translateX(-50%); }
+  }
+  .ticker-item{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding: 0 22px;
+    font-size:12.5px;
+    font-weight:600;
+    color: var(--text-dim);
+    flex-shrink:0;
+  }
+  .ticker-item .tsym{ color: var(--text); font-weight:700; }
+  .ticker-item .tprice{ color: var(--text); }
+  .ticker-item .tchange{ display:inline-flex; align-items:center; gap:2px; }
+  .ticker-item .tchange.up{ color: var(--mint); }
+  .ticker-item .tchange.down{ color: var(--error); }
+  .ticker-item .tarrow{ font-size:9px; }
+  .ticker-loading{
+    padding: 0 22px;
+    font-size:12.5px;
+    color: var(--text-faint);
   }
 
   /* ---------- header ---------- */
@@ -428,6 +475,10 @@
 </style>
 </head>
 <body>
+
+<div class="ticker-bar" id="tickerBar">
+  <div class="ticker-track" id="tickerTrack"><span class="ticker-loading">Loading prices…</span></div>
+</div>
 
 <div id="debugPanel"></div>
 
@@ -1084,6 +1135,85 @@ updateActionButton();
 if (!reownProjectIdConfigured()){
   setTimeout(()=> toast("No Reown project ID set — wallet connect will fall back to injected wallets only (won't work in plain iOS Safari)."), 600);
 }
+</script>
+
+<script>
+/* ============================================================
+   Price ticker — CoinGecko-powered banner
+   ============================================================
+   Independent of the swap logic above: pulls live prices + 24h
+   change from CoinGecko's free public API and renders a
+   continuously-scrolling strip pinned to the top of the page.
+   Green when a coin is up over the last 24h, red when it's down.
+   ============================================================ */
+(function(){
+  const TICKER_COINS = [
+    { id:"bitcoin",       symbol:"BTC"   },
+    { id:"ethereum",      symbol:"ETH"   },
+    { id:"tether",        symbol:"USDT"  },
+    { id:"binancecoin",   symbol:"BNB"   },
+    { id:"solana",        symbol:"SOL"   },
+    { id:"ripple",        symbol:"XRP"   },
+    { id:"usd-coin",      symbol:"USDC"  },
+    { id:"cardano",       symbol:"ADA"   },
+    { id:"dogecoin",      symbol:"DOGE"  },
+    { id:"avalanche-2",   symbol:"AVAX"  },
+    { id:"polkadot",      symbol:"DOT"   },
+    { id:"chainlink",     symbol:"LINK"  },
+    { id:"matic-network", symbol:"MATIC" },
+    { id:"litecoin",      symbol:"LTC"   },
+  ];
+
+  const REFRESH_MS = 60000; // CoinGecko's free tier is rate-limited — once a minute is plenty for a ticker
+  const track = document.getElementById("tickerTrack");
+
+  function formatPrice(p){
+    if (p === undefined || p === null) return "—";
+    if (p >= 1000) return "$" + p.toLocaleString(undefined, { maximumFractionDigits: 0 });
+    if (p >= 1)    return "$" + p.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return "$" + p.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  }
+
+  function itemsHTML(prices){
+    return TICKER_COINS.map(c => {
+      const d = prices[c.id];
+      if (!d || d.usd === undefined) return "";
+      const change = d.usd_24h_change ?? 0;
+      const isUp = change >= 0;
+      const arrow = isUp ? "▲" : "▼";
+      const dirClass = isUp ? "up" : "down";
+      return `
+        <span class="ticker-item">
+          <span class="tsym">${c.symbol}</span>
+          <span class="tprice">${formatPrice(d.usd)}</span>
+          <span class="tchange ${dirClass}"><span class="tarrow">${arrow}</span>${Math.abs(change).toFixed(2)}%</span>
+        </span>`;
+    }).join("");
+  }
+
+  async function refreshTicker(){
+    try{
+      const ids = TICKER_COINS.map(c => c.id).join(",");
+      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("CoinGecko request failed (" + res.status + ")");
+      const prices = await res.json();
+      const html = itemsHTML(prices);
+      if (!html){ throw new Error("No price data returned"); }
+      // duplicate the row so the marquee can loop seamlessly at -50%
+      track.innerHTML = html + html;
+    }catch(err){
+      // keep whatever was already showing rather than blanking the bar;
+      // only show an error state if we have nothing on screen yet
+      if (!track.querySelector(".ticker-item")){
+        track.innerHTML = `<span class="ticker-loading">Prices unavailable — ${err.message}</span>`;
+      }
+    }
+  }
+
+  refreshTicker();
+  setInterval(refreshTicker, REFRESH_MS);
+})();
 </script>
 </body>
 </html>
