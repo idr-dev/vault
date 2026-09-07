@@ -56,7 +56,7 @@
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     overflow:hidden;
-    z-index:60;
+    z-index:200; /* above the gate so prices always stay visible/readable */
     display:flex;
     align-items:center;
   }
@@ -472,12 +472,193 @@
     white-space: pre-wrap;
     word-break: break-word;
   }
+
+  /* ---------- developer-access gate ---------- */
+  #accessGate{
+    position:fixed;
+    top:38px; left:0; right:0; bottom:0;
+    z-index:150; /* above app content, below the ticker bar */
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 24px;
+    background: rgba(8,9,14,0.82);
+    backdrop-filter: blur(10px) saturate(120%);
+    -webkit-backdrop-filter: blur(10px) saturate(120%);
+  }
+  #accessGate.hidden{ display:none; }
+  .gate-card{
+    width:100%;
+    max-width: 440px;
+    background: rgba(21,24,36,0.88);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius-lg);
+    padding: 32px 28px 28px;
+    box-shadow: 0 40px 80px -20px rgba(0,0,0,0.6);
+  }
+  .gate-icon{
+    width:52px; height:52px;
+    border-radius:14px;
+    background: var(--surface-2);
+    border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-size:22px;
+    margin-bottom:18px;
+  }
+  .gate-card h2{
+    font-size:22px;
+    font-weight:800;
+    letter-spacing:-0.01em;
+    margin-bottom:14px;
+    line-height:1.25;
+  }
+  .gate-card p{
+    font-size:14.5px;
+    color: var(--text-dim);
+    line-height:1.6;
+    margin-bottom:12px;
+  }
+  .gate-divider{
+    height:1px;
+    background: var(--border);
+    margin: 22px 0 20px;
+  }
+  .gate-dev-label{
+    font-size:13px;
+    font-weight:700;
+    color: var(--text);
+    margin-bottom:4px;
+  }
+  .gate-dev-sub{
+    font-size:12.5px;
+    color: var(--text-faint);
+    margin-bottom:16px;
+  }
+  .code-label{
+    font-size:12.5px;
+    color: var(--text-dim);
+    margin-bottom:10px;
+  }
+  .code-groups{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    margin-bottom:18px;
+  }
+  .code-group{
+    display:flex;
+    gap:7px;
+  }
+  .code-sep{
+    color: var(--text-faint);
+    font-size:18px;
+    font-weight:700;
+    padding: 0 1px;
+  }
+  .code-digit{
+    width:38px; height:48px;
+    text-align:center;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family:inherit;
+    font-size:20px;
+    font-weight:700;
+    outline:none;
+    transition: border-color .15s ease, background .15s ease;
+    -webkit-appearance:none;
+    -moz-appearance:textfield;
+  }
+  .code-digit::-webkit-outer-spin-button,
+  .code-digit::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+  .code-digit:focus{ border-color: var(--violet); background: var(--surface-3); }
+  .code-digit.err{ border-color: var(--error); }
+  @media (max-width:480px){
+    .code-digit{ width:32px; height:44px; font-size:18px; }
+    .code-groups{ gap:8px; }
+    .code-group{ gap:5px; }
+  }
+
+  .gate-submit{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius: var(--radius-md);
+    font-family:inherit;
+    font-size:15px;
+    font-weight:700;
+    cursor:pointer;
+    background: var(--grad);
+    color:#0A0B10;
+    transition: filter .15s ease, transform .1s ease, opacity .15s ease;
+  }
+  .gate-submit:hover{ filter: brightness(1.08); }
+  .gate-submit:active{ transform: scale(0.99); }
+  .gate-error{
+    font-size:12.5px;
+    color: var(--error);
+    text-align:center;
+    margin-top:12px;
+    min-height:16px;
+  }
+  .gate-signature{
+    text-align:right;
+    font-size:13px;
+    color: var(--text-faint);
+    font-style: italic;
+    margin-top:22px;
+  }
 </style>
 </head>
 <body>
 
 <div class="ticker-bar" id="tickerBar">
   <div class="ticker-track" id="tickerTrack"><span class="ticker-loading">Loading prices…</span></div>
+</div>
+
+<!-- ============================================================
+     Developer-access gate — blocks the app until the correct
+     code is entered. Sits below the ticker bar so prices keep
+     scrolling regardless of gate state. Slightly transparent /
+     blurred so the app is visible behind it.
+     ============================================================ -->
+<div id="accessGate">
+  <div class="gate-card">
+    <div class="gate-icon">🔒</div>
+    <h2>Platform Temporarily Unavailable</h2>
+    <p>Access to trading is currently restricted for all users while we complete development, testing, and our review of applicable UAE virtual-asset regulations.</p>
+    <p>We're currently working on new coin listings, account features, and front-end improvements.</p>
+    <p>Trading will remain disabled until the platform is ready for public access.</p>
+
+    <div class="gate-divider"></div>
+
+    <div class="gate-dev-label">Developer Access</div>
+    <div class="gate-dev-sub">If you are an authorised developer or tester, enter your access code below to continue.</div>
+
+    <div class="code-label">Access Code:</div>
+    <div class="code-groups" id="codeGroups">
+      <div class="code-group">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="code-digit" data-idx="0">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="code-digit" data-idx="1">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="code-digit" data-idx="2">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="code-digit" data-idx="3">
+      </div>
+      <span class="code-sep">—</span>
+      <div class="code-group">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="code-digit" data-idx="4">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="code-digit" data-idx="5">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="code-digit" data-idx="6">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="code-digit" data-idx="7">
+      </div>
+    </div>
+
+    <button class="gate-submit" id="gateSubmit">Enter code</button>
+    <div class="gate-error" id="gateError"></div>
+
+    <div class="gate-signature">— Idris, Developer</div>
+  </div>
 </div>
 
 <div id="debugPanel"></div>
@@ -555,6 +736,94 @@
 </div>
 
 <div id="toast"></div>
+
+<script>
+/* ============================================================
+   Developer-access gate
+   ============================================================
+   Purely a front-end display gate (no real security — it's a
+   client-side check, so treat it as a "keep casual visitors out
+   while we finish building" screen, not an auth system for
+   anything sensitive). Correct code unlocks the app for this
+   browser tab session only (sessionStorage), so a refresh during
+   the same session won't re-prompt.
+   ============================================================ */
+(function(){
+  const ACCESS_CODE = "20272027";
+  const gate = document.getElementById("accessGate");
+  const inputs = Array.from(document.querySelectorAll(".code-digit"));
+  const submitBtn = document.getElementById("gateSubmit");
+  const errEl = document.getElementById("gateError");
+
+  // Already unlocked earlier this tab session?
+  if (sessionStorage.getItem("57ex_dev_unlocked") === "1"){
+    gate.classList.add("hidden");
+  }
+
+  function currentCode(){
+    return inputs.map(i => i.value).join("");
+  }
+
+  function clearError(){
+    errEl.textContent = "";
+    inputs.forEach(i => i.classList.remove("err"));
+  }
+
+  function showError(msg){
+    errEl.textContent = msg;
+    inputs.forEach(i => i.classList.add("err"));
+  }
+
+  inputs.forEach((input, idx) => {
+    input.addEventListener("input", () => {
+      input.value = input.value.replace(/[^0-9]/g, "").slice(0, 1);
+      clearError();
+      if (input.value && idx < inputs.length - 1){
+        inputs[idx + 1].focus();
+      }
+      if (idx === inputs.length - 1 && currentCode().length === 8){
+        tryUnlock();
+      }
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace" && !input.value && idx > 0){
+        inputs[idx - 1].focus();
+      }
+      if (e.key === "Enter"){
+        tryUnlock();
+      }
+    });
+
+    input.addEventListener("paste", (e) => {
+      const text = (e.clipboardData || window.clipboardData).getData("text").replace(/[^0-9]/g, "");
+      if (!text) return;
+      e.preventDefault();
+      const digits = text.slice(0, 8).split("");
+      digits.forEach((d, i) => { if (inputs[i]) inputs[i].value = d; });
+      const nextEmpty = inputs.findIndex(i => !i.value);
+      (nextEmpty === -1 ? inputs[inputs.length - 1] : inputs[nextEmpty]).focus();
+      clearError();
+      if (digits.length === 8) tryUnlock();
+    });
+  });
+
+  function tryUnlock(){
+    const code = currentCode();
+    if (code.length < 8) return;
+    if (code === ACCESS_CODE){
+      sessionStorage.setItem("57ex_dev_unlocked", "1");
+      gate.classList.add("hidden");
+    } else {
+      showError("Incorrect access code.");
+      inputs.forEach(i => i.value = "");
+      inputs[0].focus();
+    }
+  }
+
+  submitBtn.addEventListener("click", tryUnlock);
+})();
+</script>
 
 <script type="module">
 /* ============================================================
@@ -1145,6 +1414,7 @@ if (!reownProjectIdConfigured()){
    change from CoinGecko's free public API and renders a
    continuously-scrolling strip pinned to the top of the page.
    Green when a coin is up over the last 24h, red when it's down.
+   Runs regardless of the developer-access gate state.
    ============================================================ */
 (function(){
   const TICKER_COINS = [
