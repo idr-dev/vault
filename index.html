@@ -3,1488 +3,1500 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>57eX — Crypto Exchange</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+<title>57eX — Trade the Ethereum economy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
   :root{
-    --bg: #0A0B10;
-    --surface: #151824;
-    --surface-2: #1E2230;
-    --surface-3: #262B3D;
-    --text: #F2F4F8;
-    --text-dim: #8A93A6;
-    --text-faint: #565D70;
-    --violet: #5B5FEF;
-    --mint: #38E6C5;
-    --grad: linear-gradient(120deg, var(--violet), var(--mint));
-    --error: #FF6B6B;
-    --border: rgba(255,255,255,0.06);
-    --radius-lg: 24px;
-    --radius-md: 16px;
-    --radius-sm: 10px;
+    --bg-0:#0a0c11;
+    --bg-1:#10131b;
+    --bg-2:#171b26;
+    --bg-3:#1f2431;
+    --line:#262c3b;
+    --line-soft:#1c212d;
+    --text-0:#f2f4f8;
+    --text-1:#aab0c2;
+    --text-2:#6d7488;
+    --mint:#3fe8c4;
+    --mint-dim:#2ab89a;
+    --violet:#7c6cf0;
+    --up:#28c98a;
+    --down:#f2555a;
+    --amber:#e8b93f;
+    --radius-s:8px;
+    --radius-m:14px;
+    --radius-l:22px;
+    --font-display:'Sora', sans-serif;
+    --font-body:'Inter', sans-serif;
+    --font-mono:'IBM Plex Mono', monospace;
   }
-
-  *{ box-sizing: border-box; margin:0; padding:0; }
-
-  html,body{
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', -apple-system, sans-serif;
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
-  }
-
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
   body{
-    background:
-      radial-gradient(ellipse 900px 500px at 20% -10%, rgba(91,95,239,0.16), transparent 60%),
-      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(56,230,197,0.10), transparent 55%),
-      var(--bg);
-    display:flex;
-    flex-direction:column;
-    align-items:center;
+    background:var(--bg-0);
+    color:var(--text-0);
+    font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;
     min-height:100vh;
-    padding-top: 38px;
+    overflow-x:hidden;
   }
-
-  /* ---------- price ticker ---------- */
-  .ticker-bar{
+  body::before{
+    content:"";
     position:fixed;
-    top:0; left:0; right:0;
-    height:38px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
+    inset:0;
+    background:var(--bg-0);
+    pointer-events:none;
+    z-index:0;
+  }
+  h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:-0.01em;}
+  p{margin:0;}
+  a{color:inherit;text-decoration:none;}
+  button{font-family:var(--font-body);cursor:pointer;}
+  ::selection{background:rgba(63,232,196,0.3);}
+
+  /* ===== Ticker ===== */
+  .ticker-wrap{
+    position:relative;
+    z-index:5;
+    background:var(--bg-1);
+    border-bottom:1px solid var(--line-soft);
     overflow:hidden;
-    z-index:200; /* above the gate so prices always stay visible/readable */
+    height:38px;
     display:flex;
     align-items:center;
   }
   .ticker-track{
     display:flex;
-    align-items:center;
+    gap:28px;
     white-space:nowrap;
-    animation: tickerScroll 45s linear infinite;
-    will-change: transform;
+    animation:scroll-left 38s linear infinite;
+    padding-left:28px;
   }
-  .ticker-bar:hover .ticker-track{ animation-play-state: paused; }
-  @keyframes tickerScroll{
-    from{ transform: translateX(0); }
-    to{ transform: translateX(-50%); }
+  .ticker-wrap:hover .ticker-track{animation-play-state:paused;}
+  @keyframes scroll-left{
+    from{transform:translateX(0);}
+    to{transform:translateX(-50%);}
   }
   .ticker-item{
     display:inline-flex;
     align-items:center;
-    gap:6px;
-    padding: 0 22px;
+    gap:8px;
     font-size:12.5px;
-    font-weight:600;
-    color: var(--text-dim);
-    flex-shrink:0;
+    color:var(--text-1);
   }
-  .ticker-item .tsym{ color: var(--text); font-weight:700; }
-  .ticker-item .tprice{ color: var(--text); }
-  .ticker-item .tchange{ display:inline-flex; align-items:center; gap:2px; }
-  .ticker-item .tchange.up{ color: var(--mint); }
-  .ticker-item .tchange.down{ color: var(--error); }
-  .ticker-item .tarrow{ font-size:9px; }
-  .ticker-loading{
-    padding: 0 22px;
-    font-size:12.5px;
-    color: var(--text-faint);
-  }
+  .ticker-item .sym{color:var(--text-0);font-weight:600;font-family:var(--font-mono);}
+  .ticker-item .chg{font-family:var(--font-mono);font-weight:600;}
+  .ticker-item .chg.up{color:var(--up);}
+  .ticker-item .chg.down{color:var(--down);}
 
-  /* ---------- header ---------- */
-  header{
-    width:100%;
-    max-width:1040px;
+  /* ===== Nav ===== */
+  nav.top{
+    position:sticky;
+    top:0;
+    z-index:20;
     display:flex;
     align-items:center;
     justify-content:space-between;
-    padding: 28px 24px 8px;
+    padding:16px 32px;
+    background:rgba(10,12,17,0.86);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line-soft);
   }
-  .logo{
-    display:flex; align-items:center; gap:10px;
-    font-weight:800; font-size:19px; letter-spacing:-0.02em;
+  .brand{
+    font-family:var(--font-display);
+    font-weight:800;
+    font-size:22px;
+    letter-spacing:-0.02em;
   }
-  .logo-mark{
-    width:30px; height:30px; border-radius:9px;
-    background: var(--grad);
-    position:relative;
-    flex-shrink:0;
+  .brand .e{color:var(--mint);}
+  .nav-links{
+    display:flex;
+    align-items:center;
+    gap:6px;
   }
-  .logo-mark::after{
-    content:"";
-    position:absolute; inset:8px;
-    border-radius:4px;
-    background: var(--bg);
-    clip-path: polygon(0 0, 100% 0, 100% 40%, 40% 40%, 40% 100%, 0 100%);
+  .nav-link{
+    padding:9px 16px;
+    border-radius:999px;
+    font-size:14.5px;
+    font-weight:500;
+    color:var(--text-1);
+    transition:color .15s ease, background .15s ease;
   }
+  .nav-link:hover{color:var(--text-0);background:var(--bg-2);}
+  .nav-link.active{color:var(--bg-0);background:var(--mint);}
 
-  #walletBtn{
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 11px 20px;
-    border-radius: 100px;
-    font-family:inherit;
-    font-weight:600;
-    font-size:14px;
-    cursor:pointer;
-    display:flex; align-items:center; gap:8px;
-    transition: background .15s ease, transform .1s ease;
+  .dev-wrap{position:relative;}
+  .dev-btn{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:9px 14px 9px 16px;
+    border-radius:999px;
+    font-size:14.5px;
+    font-weight:500;
+    color:var(--text-1);
+    background:transparent;
+    border:1px solid transparent;
+    transition:color .15s ease, background .15s ease, border-color .15s ease;
   }
-  #walletBtn:hover{ background: var(--surface-3); }
-  #walletBtn:active{ transform: scale(0.97); }
-  #walletBtn .dot{
-    width:7px; height:7px; border-radius:50%;
-    background: var(--text-faint);
+  .dev-btn:hover{color:var(--text-0);background:var(--bg-2);}
+  .dev-btn svg{transition:transform .18s ease;}
+  .dev-btn.open svg{transform:rotate(180deg);}
+  .dev-menu{
+    position:absolute;
+    top:calc(100% + 8px);
+    right:0;
+    min-width:200px;
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    border-radius:var(--radius-m);
+    padding:6px;
+    box-shadow:0 20px 40px rgba(0,0,0,0.45);
+    opacity:0;
+    transform:translateY(-6px);
+    pointer-events:none;
+    transition:opacity .15s ease, transform .15s ease;
   }
-  #walletBtn.connected .dot{ background: var(--mint); box-shadow: 0 0 8px var(--mint); }
-
-  /* ---------- main ---------- */
-  main{
+  .dev-menu.show{opacity:1;transform:translateY(0);pointer-events:auto;}
+  .dev-menu button{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
     width:100%;
-    max-width: 460px;
-    padding: 40px 20px 60px;
-    flex:1;
+    background:none;
+    border:none;
+    color:var(--text-0);
+    font-size:14px;
+    font-weight:500;
+    padding:11px 12px;
+    border-radius:var(--radius-s);
+    text-align:left;
+  }
+  .dev-menu button:hover{background:var(--bg-3);}
+  .soon-tag{
+    font-size:10.5px;
+    font-weight:600;
+    color:var(--text-2);
+    background:var(--bg-1);
+    border:1px solid var(--line);
+    padding:2px 7px;
+    border-radius:999px;
   }
 
-  .headline{
-    text-align:center;
-    margin-bottom: 28px;
+  .wallet-btn{
+    padding:10px 20px;
+    border-radius:999px;
+    background:var(--mint);
+    color:#08110e;
+    font-weight:700;
+    font-size:14.5px;
+    border:none;
+    box-shadow:0 8px 24px rgba(63,232,196,0.18);
+    transition:transform .12s ease, box-shadow .12s ease;
   }
-  .headline h1{
-    font-size: 30px;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    line-height:1.15;
-  }
-  .headline p{
-    color: var(--text-dim);
-    font-size: 15px;
-    margin-top:6px;
-  }
+  .wallet-btn:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(63,232,196,0.28);}
+  .wallet-btn:active{transform:translateY(0);}
 
-  .card{
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 6px;
-    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.5);
-  }
+  main{position:relative;z-index:1;}
+  .page{display:none;}
+  .page.active{display:block;}
 
-  .field{
-    background: var(--surface-2);
-    border-radius: var(--radius-md);
-    padding: 18px 18px;
-    position:relative;
+  /* ===== Trade page hero ===== */
+  .hero{
+    max-width:1180px;
+    margin:0 auto;
+    padding:64px 32px 40px;
+    display:grid;
+    grid-template-columns:1.05fr 0.95fr;
+    gap:56px;
+    align-items:start;
   }
-  .field + .field{ margin-top: 4px; }
-
-  .field-label{
-    font-size:13px;
-    color: var(--text-dim);
-    margin-bottom: 10px;
-    display:flex; justify-content:space-between;
+  .hero-copy h1{
+    font-size:44px;
+    line-height:1.08;
+    font-weight:700;
+    max-width:520px;
   }
-  .field-label .balance{ cursor:pointer; }
-  .field-label .balance:hover{ color: var(--text); }
+  .hero-copy .lede{
+    margin-top:18px;
+    font-size:16.5px;
+    line-height:1.6;
+    color:var(--text-1);
+    max-width:460px;
+  }
+  .hero-stats{
+    display:flex;
+    gap:32px;
+    margin-top:36px;
+    flex-wrap:wrap;
+  }
+  .stat .num{font-family:var(--font-mono);font-size:22px;font-weight:600;color:var(--text-0);}
+  .stat .lbl{font-size:12.5px;color:var(--text-2);margin-top:4px;}
+  .fine-print{margin-top:28px;font-size:12.5px;color:var(--text-2);display:flex;align-items:center;}
 
-  .field-row{
+  /* ===== Swap card ===== */
+  .swap-card{
+    background:var(--bg-1);
+    border:1px solid var(--line);
+    border-radius:var(--radius-l);
+    padding:22px;
+    box-shadow:0 30px 60px rgba(0,0,0,0.35);
+  }
+  .swap-card h3{font-size:15px;font-weight:600;color:var(--text-1);margin-bottom:16px;font-weight:500;}
+  .swap-box{
+    background:var(--bg-2);
+    border:1px solid var(--line-soft);
+    border-radius:var(--radius-m);
+    padding:16px 16px 14px;
+  }
+  .swap-box .row-top{
+    display:flex;
+    justify-content:space-between;
+    font-size:12px;
+    color:var(--text-2);
+    margin-bottom:10px;
+  }
+  .swap-box .row-main{
     display:flex;
     align-items:center;
     justify-content:space-between;
     gap:10px;
   }
-
   .amount-input{
     background:none;
     border:none;
     outline:none;
-    color: var(--text);
-    font-family:inherit;
-    font-size: 30px;
-    font-weight: 700;
-    letter-spacing:-0.01em;
+    color:var(--text-0);
+    font-family:var(--font-mono);
+    font-size:26px;
+    font-weight:500;
     width:100%;
     min-width:0;
   }
-  .amount-input::placeholder{ color: var(--text-faint); }
-  .amount-input[readonly]{ color: var(--text-dim); }
-
-  .usd-sub{
-    font-size:13px;
-    color: var(--text-faint);
-    margin-top:4px;
-    min-height:16px;
-  }
-
-  .token-picker{
+  .amount-input::placeholder{color:var(--text-2);}
+  .token-select{
     display:flex;
     align-items:center;
     gap:8px;
-    background: var(--surface-3);
+    background:var(--bg-3);
+    border:1px solid var(--line);
+    padding:8px 10px 8px 8px;
+    border-radius:999px;
+    flex-shrink:0;
+  }
+  .token-select select{
+    appearance:none;
+    background:none;
     border:none;
-    border-radius: 100px;
-    padding: 8px 14px 8px 8px;
-    color: var(--text);
-    font-family:inherit;
-    font-weight:700;
-    font-size:15px;
-    cursor:pointer;
-    flex-shrink:0;
-    transition: background .15s ease;
+    outline:none;
+    color:var(--text-0);
+    font-weight:600;
+    font-size:14.5px;
+    max-width:120px;
   }
-  .token-picker:hover{ background: #2E3448; }
-  .token-icon{
-    width:26px; height:26px; border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    font-size:12px; font-weight:800;
-    color:#0A0B10;
+  .token-select select option{background:var(--bg-2);}
+  .coin-dot{
+    width:24px;height:24px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:700;color:#06110e;
     flex-shrink:0;
   }
-  .chev{ color: var(--text-dim); font-size:10px; margin-left:2px; }
-
-  .swap-divider{
+  .swap-flip{
+    display:flex;
+    justify-content:center;
+    margin:-11px 0;
     position:relative;
-    height: 0;
-    display:flex; justify-content:center;
-  }
-  .swap-toggle{
-    position:absolute;
-    top:-20px;
-    width:40px; height:40px;
-    border-radius:12px;
-    background: var(--surface);
-    border: 4px solid var(--surface);
-    display:flex; align-items:center; justify-content:center;
-    cursor:pointer;
     z-index:2;
   }
-  .swap-toggle-inner{
-    width:100%; height:100%;
-    background: var(--surface-3);
-    border-radius:8px;
-    display:flex; align-items:center; justify-content:center;
-    color: var(--text);
-    font-size:15px;
-    transition: transform .2s ease, background .15s ease;
+  .swap-flip button{
+    width:34px;height:34px;
+    border-radius:50%;
+    background:var(--bg-3);
+    border:4px solid var(--bg-1);
+    color:var(--text-1);
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .18s ease, color .15s ease;
   }
-  .swap-toggle:hover .swap-toggle-inner{ background: #2E3448; }
-  .swap-toggle.spin .swap-toggle-inner{ transform: rotate(180deg); }
-
-  /* ---------- details ---------- */
-  .details{
-    margin-top: 12px;
-    padding: 4px 12px;
-  }
-  .details-toggle{
-    display:flex; align-items:center; justify-content:space-between;
-    padding: 10px 4px;
-    cursor:pointer;
-    font-size:13px;
-    color: var(--text-dim);
-  }
-  .details-toggle .rate{ color: var(--text); font-weight:600; }
-  .details-toggle .chev{ transition: transform .2s ease; }
-  .details.open .details-toggle .chev{ transform: rotate(180deg); }
-
-  .details-body{
-    max-height:0;
-    overflow:hidden;
-    transition: max-height .25s ease;
-  }
-  .details.open .details-body{ max-height: 200px; }
-
-  .detail-row{
-    display:flex; justify-content:space-between;
-    font-size:13px;
-    padding: 6px 4px;
-    color: var(--text-dim);
-  }
-  .detail-row span:last-child{ color: var(--text); }
-
-  /* ---------- action button ---------- */
-  .action-btn{
-    width:100%;
-    margin-top: 12px;
-    padding: 18px;
-    border:none;
-    border-radius: var(--radius-md);
-    font-family:inherit;
-    font-size:17px;
-    font-weight:700;
-    cursor:pointer;
-    background: var(--grad);
-    color: #0A0B10;
-    transition: filter .15s ease, transform .1s ease, opacity .15s ease;
-  }
-  .action-btn:hover{ filter: brightness(1.08); }
-  .action-btn:active{ transform: scale(0.99); }
-  .action-btn:disabled{
-    background: var(--surface-3);
-    color: var(--text-faint);
-    cursor:not-allowed;
-    filter:none;
-  }
-  .action-btn.err{ background: var(--error); color:#1a0000; }
-
-  .fee-note{
-    text-align:center;
+  .swap-flip button:hover{color:var(--mint);transform:rotate(180deg);}
+  .rate-line{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:14px;
+    padding:0 2px;
     font-size:12.5px;
-    color: var(--text-faint);
+    color:var(--text-2);
+  }
+  .rate-line span.val{color:var(--text-1);font-family:var(--font-mono);}
+  .trade-cta{
+    width:100%;
     margin-top:16px;
-    line-height:1.5;
-  }
-  .fee-note b{ color: var(--text-dim); font-weight:600; }
-
-  /* ---------- token modal ---------- */
-  .overlay{
-    position:fixed; inset:0;
-    background: rgba(5,6,10,0.7);
-    backdrop-filter: blur(4px);
-    display:none;
-    align-items:center; justify-content:center;
-    z-index:50;
-    padding:20px;
-  }
-  .overlay.show{ display:flex; }
-  .modal{
-    width:100%; max-width:380px;
-    background: var(--surface);
-    border:1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding:20px;
-    max-height:70vh;
-    display:flex; flex-direction:column;
-  }
-  .modal h3{ font-size:17px; margin-bottom:14px; }
-  .modal-search{
-    background: var(--surface-2);
-    border:none; outline:none;
-    border-radius: var(--radius-sm);
-    padding:12px 14px;
-    color:var(--text);
-    font-family:inherit;
-    font-size:14px;
-    margin-bottom:10px;
-  }
-  .token-list{ overflow-y:auto; }
-  .token-row{
-    display:flex; align-items:center; gap:12px;
-    padding: 10px 8px;
-    border-radius: var(--radius-sm);
-    cursor:pointer;
-  }
-  .token-row:hover{ background: var(--surface-2); }
-  .token-row .token-icon{ width:34px; height:34px; font-size:14px; }
-  .token-row .tname{ font-weight:600; font-size:14.5px; }
-  .token-row .tsym{ color: var(--text-dim); font-size:12.5px; }
-
-  /* ---------- settings ---------- */
-  .settings-link{
-    display:block;
-    text-align:center;
-    margin-top:22px;
-    font-size:12.5px;
-    color: var(--text-faint);
-    cursor:pointer;
-    text-decoration:underline;
-    text-underline-offset:3px;
-  }
-  .settings-link:hover{ color: var(--text-dim); }
-  .settings-body label{
-    display:block;
-    font-size:12.5px;
-    color: var(--text-dim);
-    margin: 14px 0 6px;
-  }
-  .settings-body input{
-    width:100%;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    outline:none;
-    border-radius: var(--radius-sm);
-    padding: 11px 13px;
-    color: var(--text);
-    font-family:inherit;
-    font-size:13.5px;
-  }
-  .settings-hint{ font-size:11.5px; color:var(--text-faint); margin-top:5px; line-height:1.5; }
-  .settings-save{
-    margin-top:18px;
-    width:100%;
-    padding:13px;
-    border:none;
-    border-radius: var(--radius-sm);
-    background: var(--surface-3);
-    color: var(--text);
-    font-family:inherit; font-weight:700; font-size:14px;
-    cursor:pointer;
-  }
-  .settings-save:hover{ background:#2E3448; }
-
-  /* ---------- toast ---------- */
-  #toast{
-    position:fixed;
-    bottom:24px; left:50%;
-    transform: translateX(-50%) translateY(20px);
-    background: var(--surface-3);
-    border:1px solid var(--border);
-    padding: 13px 20px;
-    border-radius: 100px;
-    font-size:13.5px;
-    opacity:0;
-    pointer-events:none;
-    transition: opacity .2s ease, transform .2s ease;
-    max-width: 90vw;
-    text-align:center;
-    z-index:100;
-  }
-  #toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
-
-  footer{
-    color: var(--text-faint);
-    font-size:12px;
-    padding: 20px;
-    text-align:center;
-  }
-
-  @media (max-width:480px){
-    .headline h1{ font-size:26px; }
-    .amount-input{ font-size:26px; }
-  }
-
-  /* ---------- temporary debug panel ---------- */
-  #debugPanel{
-    display:none;
-    max-width: 460px;
-    margin: 0 auto 30px;
-    padding: 14px 16px;
-    background: #2a1010;
-    border: 1px solid rgba(255,107,107,0.4);
-    border-radius: 12px;
-    color: #ffb4b4;
-    font-family: ui-monospace, monospace;
-    font-size: 12px;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-
-  /* ---------- developer-access gate ---------- */
-  #accessGate{
-    position:fixed;
-    top:38px; left:0; right:0; bottom:0;
-    z-index:150; /* above app content, below the ticker bar */
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding: 24px;
-    background: rgba(8,9,14,0.82);
-    backdrop-filter: blur(10px) saturate(120%);
-    -webkit-backdrop-filter: blur(10px) saturate(120%);
-  }
-  #accessGate.hidden{ display:none; }
-  .gate-card{
-    width:100%;
-    max-width: 440px;
-    background: rgba(21,24,36,0.88);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: var(--radius-lg);
-    padding: 32px 28px 28px;
-    box-shadow: 0 40px 80px -20px rgba(0,0,0,0.6);
-  }
-  .gate-icon{
-    width:52px; height:52px;
-    border-radius:14px;
-    background: var(--surface-2);
-    border:1px solid var(--border);
-    display:flex; align-items:center; justify-content:center;
-    font-size:22px;
-    margin-bottom:18px;
-  }
-  .gate-card h2{
-    font-size:22px;
-    font-weight:800;
-    letter-spacing:-0.01em;
-    margin-bottom:14px;
-    line-height:1.25;
-  }
-  .gate-card p{
-    font-size:14.5px;
-    color: var(--text-dim);
-    line-height:1.6;
-    margin-bottom:12px;
-  }
-  .gate-divider{
-    height:1px;
-    background: var(--border);
-    margin: 22px 0 20px;
-  }
-  .gate-dev-label{
-    font-size:13px;
-    font-weight:700;
-    color: var(--text);
-    margin-bottom:4px;
-  }
-  .gate-dev-sub{
-    font-size:12.5px;
-    color: var(--text-faint);
-    margin-bottom:16px;
-  }
-  .code-label{
-    font-size:12.5px;
-    color: var(--text-dim);
-    margin-bottom:10px;
-  }
-  .code-groups{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:10px;
-    margin-bottom:18px;
-  }
-  .code-group{
-    display:flex;
-    gap:7px;
-  }
-  .code-sep{
-    color: var(--text-faint);
-    font-size:18px;
-    font-weight:700;
-    padding: 0 1px;
-  }
-  .code-digit{
-    width:38px; height:48px;
-    text-align:center;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text);
-    font-family:inherit;
-    font-size:20px;
-    font-weight:700;
-    outline:none;
-    transition: border-color .15s ease, background .15s ease;
-    -webkit-appearance:none;
-    -moz-appearance:textfield;
-  }
-  .code-digit::-webkit-outer-spin-button,
-  .code-digit::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
-  .code-digit:focus{ border-color: var(--violet); background: var(--surface-3); }
-  .code-digit.err{ border-color: var(--error); }
-  @media (max-width:480px){
-    .code-digit{ width:32px; height:44px; font-size:18px; }
-    .code-groups{ gap:8px; }
-    .code-group{ gap:5px; }
-  }
-
-  .gate-submit{
-    width:100%;
     padding:15px;
     border:none;
-    border-radius: var(--radius-md);
-    font-family:inherit;
-    font-size:15px;
+    border-radius:var(--radius-m);
+    background:var(--mint);
+    color:#081109;
     font-weight:700;
-    cursor:pointer;
-    background: var(--grad);
-    color:#0A0B10;
-    transition: filter .15s ease, transform .1s ease, opacity .15s ease;
+    font-size:15.5px;
+    transition:filter .15s ease, transform .12s ease;
   }
-  .gate-submit:hover{ filter: brightness(1.08); }
-  .gate-submit:active{ transform: scale(0.99); }
-  .gate-error{
-    font-size:12.5px;
-    color: var(--error);
+  .trade-cta:hover{filter:brightness(1.07);transform:translateY(-1px);}
+  .trade-cta:disabled{opacity:0.5;cursor:not-allowed;filter:none;transform:none;}
+  .swap-footnote{
     text-align:center;
     margin-top:12px;
-    min-height:16px;
+    font-size:12px;
+    color:var(--text-2);
   }
-  .gate-signature{
-    text-align:right;
+
+  /* ===== Modals ===== */
+  .modal-overlay{
+    position:fixed;inset:0;z-index:100;
+    background:rgba(6,7,10,0.72);
+    backdrop-filter:blur(4px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal{
+    background:var(--bg-1);
+    border:1px solid var(--line);
+    border-radius:var(--radius-l);
+    width:100%;
+    max-width:400px;
+    padding:24px;
+    box-shadow:0 40px 80px rgba(0,0,0,0.5);
+    animation:pop .18s ease;
+  }
+  @keyframes pop{from{opacity:0;transform:scale(.96) translateY(6px);}to{opacity:1;transform:scale(1) translateY(0);}}
+  .modal-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:18px;
+  }
+  .modal-head h3{font-size:17px;font-weight:700;}
+  .modal-close{
+    width:28px;height:28px;border-radius:50%;
+    background:var(--bg-2);border:1px solid var(--line);
+    color:var(--text-1);display:flex;align-items:center;justify-content:center;
+  }
+  .modal-close:hover{color:var(--text-0);}
+  .fee-row{
+    display:flex;
+    justify-content:space-between;
+    padding:12px 0;
+    border-bottom:1px solid var(--line-soft);
+    font-size:14px;
+  }
+  .fee-row:last-of-type{border-bottom:none;}
+  .fee-row .lbl{color:var(--text-1);}
+  .fee-row .lbl small{display:block;color:var(--text-2);font-size:11.5px;margin-top:2px;}
+  .fee-row .val{font-family:var(--font-mono);font-weight:600;}
+  .fee-total{
+    margin-top:6px;
+    padding-top:14px;
+    border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;
+    font-size:15.5px;font-weight:700;
+  }
+  .modal-primary-btn{
+    width:100%;margin-top:20px;padding:14px;border:none;border-radius:var(--radius-m);
+    background:var(--mint);
+    color:#081109;font-weight:700;font-size:15px;
+  }
+  .modal-primary-btn:hover{filter:brightness(1.06);}
+
+  .wallet-option{
+    width:100%;
+    display:flex;align-items:center;gap:12px;
+    padding:13px 14px;
+    background:var(--bg-2);
+    border:1px solid var(--line-soft);
+    border-radius:var(--radius-m);
+    margin-bottom:10px;
+    color:var(--text-0);
+    font-size:14.5px;
+    font-weight:600;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .wallet-option:hover{border-color:var(--mint-dim);background:var(--bg-3);}
+  .wallet-icon{
+    width:32px;height:32px;border-radius:9px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:15px;flex-shrink:0;
+  }
+
+  .unsupported-icon{
+    width:52px;height:52px;border-radius:16px;
+    background:rgba(232,185,63,0.12);
+    border:1px solid rgba(232,185,63,0.3);
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:16px;
+  }
+  .modal p.body-text{
+    font-size:14.5px;
+    line-height:1.6;
+    color:var(--text-1);
+  }
+
+  .toast{
+    position:fixed;
+    bottom:24px;right:24px;
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    padding:14px 18px;
+    border-radius:var(--radius-m);
+    font-size:14px;
+    font-weight:500;
+    box-shadow:0 20px 40px rgba(0,0,0,0.4);
+    display:flex;align-items:center;gap:10px;
+    transform:translateY(20px);
+    opacity:0;
+    pointer-events:none;
+    transition:transform .2s ease, opacity .2s ease;
+    z-index:200;
+  }
+  .toast.show{transform:translateY(0);opacity:1;}
+
+  /* ===== Markets page ===== */
+  .markets-wrap{
+    max-width:1180px;
+    margin:0 auto;
+    padding:40px 32px 90px;
+  }
+  .markets-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:20px;
+    margin-bottom:24px;
+  }
+  .markets-head h2{font-size:28px;font-weight:700;}
+  .markets-head p{color:var(--text-1);font-size:14.5px;margin-top:6px;}
+
+  .add-coin-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:22px;
+    position:relative;
+  }
+  .add-coin-row input{
+    flex:1;
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    border-radius:var(--radius-m);
+    padding:13px 16px;
+    color:var(--text-0);
+    font-size:14.5px;
+    outline:none;
+  }
+  .add-coin-row input:focus{border-color:var(--mint-dim);}
+  .add-coin-row select{
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    border-radius:var(--radius-m);
+    padding:0 14px;
+    color:var(--text-1);
+    font-size:14px;
+    font-weight:600;
+  }
+  .suggest-list{
+    position:absolute;
+    top:calc(100% + 6px);
+    left:0;right:0;
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    border-radius:var(--radius-m);
+    max-height:280px;
+    overflow-y:auto;
+    z-index:15;
+    display:none;
+    box-shadow:0 20px 40px rgba(0,0,0,0.4);
+  }
+  .suggest-list.show{display:block;}
+  .suggest-item{
+    display:flex;align-items:center;gap:10px;
+    padding:11px 14px;
+    font-size:14px;
+    border-bottom:1px solid var(--line-soft);
+  }
+  .suggest-item:last-child{border-bottom:none;}
+  .suggest-item:hover{background:var(--bg-3);}
+  .suggest-item .name{font-weight:600;}
+  .suggest-item .sym{color:var(--text-2);font-family:var(--font-mono);font-size:12px;}
+
+  .markets-grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:20px;
+  }
+  .table-card{
+    background:var(--bg-1);
+    border:1px solid var(--line);
+    border-radius:var(--radius-l);
+    overflow:hidden;
+  }
+  table{width:100%;border-collapse:collapse;}
+  thead th{
+    text-align:left;
+    font-size:12px;
+    font-weight:600;
+    color:var(--text-2);
+    padding:14px 18px;
+    border-bottom:1px solid var(--line);
+  }
+  tbody td{
+    padding:14px 18px;
+    font-size:14px;
+    border-bottom:1px solid var(--line-soft);
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr{cursor:pointer;transition:background .12s ease;}
+  tbody tr:hover{background:var(--bg-2);}
+  tbody tr.selected{background:var(--bg-2);}
+  .coin-cell{display:flex;align-items:center;gap:10px;}
+  .coin-cell .nm{font-weight:600;}
+  .coin-cell .sy{color:var(--text-2);font-size:12px;font-family:var(--font-mono);}
+  td.mono{font-family:var(--font-mono);}
+  td.chg.up{color:var(--up);font-family:var(--font-mono);}
+  td.chg.down{color:var(--down);font-family:var(--font-mono);}
+  .remove-btn{
+    background:none;border:none;color:var(--text-2);
+    width:26px;height:26px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .remove-btn:hover{color:var(--down);background:var(--bg-3);}
+  .empty-state{
+    padding:50px 20px;
+    text-align:center;
+    color:var(--text-2);
+    font-size:14px;
+  }
+
+  .detail-card{
+    background:var(--bg-1);
+    border:1px solid var(--line);
+    border-radius:var(--radius-l);
+    padding:22px;
+  }
+  .detail-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    flex-wrap:wrap;
+    gap:14px;
+    margin-bottom:16px;
+  }
+  .detail-title{display:flex;align-items:center;gap:12px;}
+  .detail-title .nm{font-size:19px;font-weight:700;}
+  .detail-price{font-family:var(--font-mono);font-size:24px;font-weight:600;}
+  .range-btns{display:flex;gap:6px;}
+  .range-btns button{
+    padding:7px 13px;
+    border-radius:999px;
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    color:var(--text-1);
+    font-size:12.5px;
+    font-weight:600;
+  }
+  .range-btns button.active{background:var(--mint);color:#08110e;border-color:var(--mint);}
+  .hl-row{display:flex;gap:26px;margin:14px 0 8px;flex-wrap:wrap;}
+  .hl-item .lbl{font-size:11.5px;color:var(--text-2);}
+  .hl-item .v{font-family:var(--font-mono);font-size:14.5px;font-weight:600;margin-top:2px;}
+  .chart-holder{height:260px;margin-top:14px;position:relative;}
+  .chart-placeholder{
+    height:260px;display:flex;align-items:center;justify-content:center;
+    color:var(--text-2);font-size:13.5px;
+  }
+
+  .compare-card{
+    background:var(--bg-1);
+    border:1px solid var(--line);
+    border-radius:var(--radius-l);
+    padding:22px;
+  }
+  .compare-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;}
+  .compare-head h4{font-size:16px;font-weight:700;}
+  .compare-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+  .chip{
+    display:flex;align-items:center;gap:7px;
+    padding:7px 12px;
+    border-radius:999px;
+    background:var(--bg-2);
+    border:1px solid var(--line);
     font-size:13px;
-    color: var(--text-faint);
-    font-style: italic;
-    margin-top:22px;
+    font-weight:600;
+    color:var(--text-1);
+    cursor:pointer;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .chip.active{border-color:var(--mint-dim);color:var(--mint);background:rgba(63,232,196,0.08);}
+  .vs-currency select{
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:8px 14px;
+    color:var(--text-1);
+    font-size:13px;
+    font-weight:600;
+  }
+
+  footer{
+    max-width:1180px;
+    margin:0 auto;
+    padding:30px 32px 50px;
+    color:var(--text-2);
+    font-size:12.5px;
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+    border-top:1px solid var(--line-soft);
+  }
+
+  @media (max-width:920px){
+    .hero{grid-template-columns:1fr;padding:36px 20px;}
+    .hero-copy h1{font-size:32px;max-width:100%;}
+    nav.top{padding:14px 18px;}
+    .nav-links{display:none;}
+    .markets-wrap{padding:28px 18px 70px;}
   }
 </style>
 </head>
 <body>
 
-<div class="ticker-bar" id="tickerBar">
-  <div class="ticker-track" id="tickerTrack"><span class="ticker-loading">Loading prices…</span></div>
-</div>
-
-<!-- ============================================================
-     Developer-access gate — blocks the app until the correct
-     code is entered. Sits below the ticker bar so prices keep
-     scrolling regardless of gate state. Slightly transparent /
-     blurred so the app is visible behind it.
-     ============================================================ -->
-<div id="accessGate">
-  <div class="gate-card">
-    <div class="gate-icon">
-  <div class="logo-mark"></div>
-</div>
-    <h2>57eX Temporarily Unavailable</h2>
-    <p>Access to trading is currently restricted for all users while we complete development, testing, and our review of applicable UAE virtual-asset regulations.</p>
-    <p>We're currently working on new coin listings, account features, and front-end improvements.</p>
-    <p>Trading will remain disabled until the platform is ready for public access.</p>
-
-    <div class="gate-divider"></div>
-
-    <div class="gate-dev-label">Developer Access</div>
-    <div class="gate-dev-sub">If you are an authorised developer or tester, enter your access code below to continue.</div>
-
-    <div class="code-label">Access Code:</div>
-    <div class="code-groups" id="codeGroups">
-      <div class="code-group">
-        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="code-digit" data-idx="0">
-        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="code-digit" data-idx="1">
-        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="code-digit" data-idx="2">
-        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="code-digit" data-idx="3">
-      </div>
-      <span class="code-sep">—</span>
-      <div class="code-group">
-        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="code-digit" data-idx="4">
-        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="code-digit" data-idx="5">
-        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="code-digit" data-idx="6">
-        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="code-digit" data-idx="7">
-      </div>
+  <div class="ticker-wrap">
+    <div class="ticker-track" id="tickerTrack">
+      <span class="ticker-item">Loading live prices…</span>
     </div>
-
-    <button class="gate-submit" id="gateSubmit">Enter code</button>
-    <div class="gate-error" id="gateError"></div>
-
-    <div class="gate-signature">— Idris, Developer</div>
-  </div>
-</div>
-
-<div id="debugPanel"></div>
-
-<header>
-  <div class="logo">
-    <div class="logo-mark"></div>
-    57eX
-  </div>
-  <button id="walletBtn"><span class="dot"></span><span id="walletLabel">Connect wallet</span></button>
-</header>
-
-<main>
-  <div class="headline">
-    <h1>Trade crypto,<br>instantly.</h1>
-    <p>Best prices routed across every major exchange.</p>
   </div>
 
-  <div class="card">
-    <div class="field">
-      <div class="field-label">
-        <span>Sell</span>
-        <span class="balance" id="sellBalance"></span>
-      </div>
-      <div class="field-row">
-        <input type="text" inputmode="decimal" class="amount-input" id="sellAmount" placeholder="0">
-        <button class="token-picker" id="sellPicker"></button>
-      </div>
-      <div class="usd-sub" id="sellUsd"></div>
-    </div>
-
-    <div class="swap-divider">
-      <div class="swap-toggle" id="swapToggle"><div class="swap-toggle-inner">⇅</div></div>
-    </div>
-
-    <div class="field">
-      <div class="field-label">
-        <span>Buy</span>
-        <span class="balance" id="buyBalance"></span>
-      </div>
-      <div class="field-row">
-        <input type="text" class="amount-input" id="buyAmount" placeholder="0" readonly>
-        <button class="token-picker" id="buyPicker"></button>
-      </div>
-      <div class="usd-sub" id="buyUsd"></div>
-    </div>
-
-    <div class="details" id="details">
-      <div class="details-toggle" id="detailsToggle">
-        <span><span class="rate" id="rateText">—</span></span>
-        <span class="chev">▾</span>
-      </div>
-      <div class="details-body">
-        <div class="detail-row"><span>57eX fee (0.05%)</span><span id="feeAmount">—</span></div>
-        <div class="detail-row"><span>Network fee (est.)</span><span id="gasAmount">—</span></div>
-        <div class="detail-row"><span>Minimum received</span><span id="minReceived">—</span></div>
-      </div>
-    </div>
-
-    <button class="action-btn" id="actionBtn" disabled>Enter an amount</button>
-  </div>
-
-  <p class="fee-note"><b>0.05%</b> fee on every trade. No hidden spreads, no subscriptions — the quote you see is the price you get.</p>
-</main>
-
-<footer>57eX routes trades through 0x's liquidity aggregator. Not financial advice. Verify every transaction in your wallet before signing.</footer>
-
-<!-- token select modal -->
-<div class="overlay" id="tokenOverlay">
-  <div class="modal">
-    <h3>Select a token</h3>
-    <input class="modal-search" id="tokenSearch" placeholder="Search name or symbol">
-    <div class="token-list" id="tokenList"></div>
-  </div>
-</div>
-
-<div id="toast"></div>
-
-<script>
-/* ============================================================
-   Developer-access gate
-   ============================================================
-   Purely a front-end display gate (no real security — it's a
-   client-side check, so treat it as a "keep casual visitors out
-   while we finish building" screen, not an auth system for
-   anything sensitive). Correct code unlocks the app for this
-   browser tab session only (sessionStorage), so a refresh during
-   the same session won't re-prompt.
-   ============================================================ */
-(function(){
-  const ACCESS_CODE = "20272027";
-  const gate = document.getElementById("accessGate");
-  const inputs = Array.from(document.querySelectorAll(".code-digit"));
-  const submitBtn = document.getElementById("gateSubmit");
-  const errEl = document.getElementById("gateError");
-
-  // Already unlocked earlier this tab session?
-  if (sessionStorage.getItem("57ex_dev_unlocked") === "1"){
-    gate.classList.add("hidden");
-  }
-
-  function currentCode(){
-    return inputs.map(i => i.value).join("");
-  }
-
-  function clearError(){
-    errEl.textContent = "";
-    inputs.forEach(i => i.classList.remove("err"));
-  }
-
-  function showError(msg){
-    errEl.textContent = msg;
-    inputs.forEach(i => i.classList.add("err"));
-  }
-
-  inputs.forEach((input, idx) => {
-    input.addEventListener("input", () => {
-      input.value = input.value.replace(/[^0-9]/g, "").slice(0, 1);
-      clearError();
-      if (input.value && idx < inputs.length - 1){
-        inputs[idx + 1].focus();
-      }
-      if (idx === inputs.length - 1 && currentCode().length === 8){
-        tryUnlock();
-      }
-    });
-
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Backspace" && !input.value && idx > 0){
-        inputs[idx - 1].focus();
-      }
-      if (e.key === "Enter"){
-        tryUnlock();
-      }
-    });
-
-    input.addEventListener("paste", (e) => {
-      const text = (e.clipboardData || window.clipboardData).getData("text").replace(/[^0-9]/g, "");
-      if (!text) return;
-      e.preventDefault();
-      const digits = text.slice(0, 8).split("");
-      digits.forEach((d, i) => { if (inputs[i]) inputs[i].value = d; });
-      const nextEmpty = inputs.findIndex(i => !i.value);
-      (nextEmpty === -1 ? inputs[inputs.length - 1] : inputs[nextEmpty]).focus();
-      clearError();
-      if (digits.length === 8) tryUnlock();
-    });
-  });
-
-  function tryUnlock(){
-    const code = currentCode();
-    if (code.length < 8) return;
-    if (code === ACCESS_CODE){
-      sessionStorage.setItem("57ex_dev_unlocked", "1");
-      gate.classList.add("hidden");
-    } else {
-      showError("Incorrect access code.");
-      inputs.forEach(i => i.value = "");
-      inputs[0].focus();
-    }
-  }
-
-  submitBtn.addEventListener("click", tryUnlock);
-})();
-</script>
-
-<script type="module">
-/* ============================================================
-   57eX — a 0x-powered swap interface
-   ============================================================
-   Fee model: 0x's Swap API supports a built-in affiliate fee via
-   `swapFeeBps` / `swapFeeRecipient` / `swapFeeToken`. 57eX sets
-   swapFeeBps = 5 (0.05%), so the fee is collected atomically by
-   the 0x settlement contract as part of the trade itself — 57eX
-   never custodies user funds.
-
-   Pricing vs. quoting: 0x's permit2 API has two endpoints —
-   `/price` (indicative, no wallet/taker required — used here for
-   live typing) and `/quote` (a signable, executable transaction,
-   which DOES require a connected wallet as `taker`). Fetching
-   `/quote` with no taker is what was causing the errors before —
-   we now only call `/quote` right at trade execution.
-
-   Wallet connection: uses Reown AppKit (WalletConnect) so wallets
-   connect properly on iOS/iPadOS Safari, which never exposes an
-   injected `window.ethereum` the way desktop Chrome extensions do.
-   AppKit shows a QR code on desktop and switches to the wallet app
-   natively on mobile. If no Reown project ID is configured below,
-   57eX falls back to the old direct-injected-wallet flow so the
-   app still works while you're setting things up.
-   ============================================================ */
-
-import { createAppKit } from "https://esm.sh/@reown/appkit@1.8.23";
-import { EthersAdapter } from "https://esm.sh/@reown/appkit-adapter-ethers@1.8.23";
-import { mainnet } from "https://esm.sh/@reown/appkit@1.8.23/networks";
-
-// --- Developer config — set before deploying. ---
-const CONFIG = {
-  REOWN_PROJECT_ID: "48fef7dd958aa0828a5daebf13b9cd75",   // free at cloud.reown.com — enables WalletConnect. Safe to keep client-side.
-};
-// The 0x API key and fee-recipient wallet live server-side only now —
-// see /api/0x.js (Vercel) or /netlify/functions/0x.js (Netlify).
-// They are never sent to, or present in, this file or the browser.
-
-const CHAIN_ID = 1; // Ethereum mainnet
-const FEE_BPS = 5;  // 0.05% = 5 basis points (1 bps = 0.01%)
-const PROXY_URL = "/api/0x"; // same path this file's fetch calls hit — matches functions/api/0x.js
-
-const TOKENS = [
-  { symbol:"ETH",  name:"Ethereum",     address:"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", decimals:18, color:"#8A9BFF" },
-  { symbol:"WETH", name:"Wrapped Ether",address:"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", decimals:18, color:"#8A9BFF" },
-  { symbol:"USDC", name:"USD Coin",     address:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", decimals:6,  color:"#2775CA" },
-  { symbol:"USDT", name:"Tether USD",   address:"0xdAC17F958D2ee523a2206206994597C13D831ec7", decimals:6,  color:"#26A17B" },
-  { symbol:"DAI",  name:"Dai Stablecoin",address:"0x6B175474E89094C44Da98b954EedeAC495271d0F",decimals:18, color:"#F5AC37" },
-  { symbol:"WBTC", name:"Wrapped Bitcoin",address:"0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",decimals:8, color:"#F7931A" },
-  { symbol:"MATIC",name:"Polygon",      address:"0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0", decimals:18, color:"#8247E5" },
-  { symbol:"UNI",  name:"Uniswap",      address:"0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", decimals:18, color:"#FF007A" },
-  { symbol:"LINK", name:"Chainlink",    address:"0x514910771AF9Ca656af840dff83E8264EcF986CA", decimals:18, color:"#2A5ADA" },
-  { symbol:"ARB",  name:"Arbitrum",     address:"0xB50721BCf8d664c30412Cfbc6cf7a15145234ad1", decimals:18, color:"#28A0F0" },
-];
-
-let state = {
-  sellToken: TOKENS[0],
-  buyToken: TOKENS[2],
-  sellAmount: "",
-  quote: null,
-  wallet: null,
-  provider: null,
-  signer: null,
-  pickerTarget: null,
-  quoteTimer: null,
-};
-
-// ---------- helpers ----------
-const $ = id => document.getElementById(id);
-const fmt = (n, d=6) => {
-  if (n === null || n === undefined || isNaN(n)) return "";
-  const num = Number(n);
-  if (num === 0) return "0";
-  if (num < 0.0001) return num.toExponential(2);
-  // Manual formatting (no toLocaleString/Intl) — avoids a Safari bug where
-  // toLocaleString can throw a generic "string did not match the expected
-  // pattern" SyntaxError on some iPadOS versions.
-  const factor = Math.pow(10, d);
-  const rounded = Math.round(num * factor) / factor;
-  const [intPart, decPart] = rounded.toString().split(".");
-  const withCommas = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return decPart ? `${withCommas}.${decPart}` : withCommas;
-};
-
-function toast(msg, isErr=false){
-  const t = $("toast");
-  t.textContent = msg;
-  t.style.borderColor = isErr ? "rgba(255,107,107,0.4)" : "var(--border)";
-  t.classList.add("show");
-  clearTimeout(toast._t);
-  toast._t = setTimeout(()=>t.classList.remove("show"), 3200);
-}
-
-// ---------- temporary debug panel ----------
-// Shows the real error (name, message, stack) directly on the page so it
-// can be copied/screenshotted without needing dev tools. Safe to delete
-// this whole block (and the #debugPanel div/CSS) once things are working.
-function showDebugInfo(label, err){
-  const panel = $("debugPanel");
-  if (!panel) return;
-  const stack = (err && err.stack) ? err.stack : "(no stack available)";
-  const name = (err && err.name) ? err.name : "Error";
-  const message = (err && err.message) ? err.message : String(err);
-  panel.textContent = `[${label}]\n${name}: ${message}\n\n${stack}`;
-  panel.style.display = "block";
-}
-window.addEventListener("error", (e) => {
-  showDebugInfo("window.onerror", e.error || { message: e.message });
-});
-window.addEventListener("unhandledrejection", (e) => {
-  showDebugInfo("unhandled promise rejection", e.reason);
-});
-
-function explainNetworkError(err){
-  const isNetworkLevel = err instanceof TypeError ||
-    /load failed|failed to fetch|network/i.test(err.message || "");
-  if (isNetworkLevel){
-    if (window.location.protocol === "file:"){
-      return "Can't reach the price feed — this page is open as a local file. Host it at a real https:// address (GitHub Pages, Netlify, Vercel, etc.) and open it from there.";
-    }
-    return "Can't reach /api/0x — make sure the proxy function is deployed (see api/0x.js) and ZEROX_API_KEY is set in your host's environment variables.";
-  }
-  if (err.message === "SERVER_NOT_CONFIGURED" || /ZEROX_API_KEY is not set/i.test(err.message || "")){
-    return "Server isn't configured yet — set ZEROX_API_KEY in your hosting provider's environment variables.";
-  }
-  return err.message || "Couldn't fetch a price right now.";
-}
-
-function tokenIconHTML(t, size){
-  return `<div class="token-icon" style="background:${t.color}">${t.symbol.slice(0,1)}</div>`;
-}
-
-function renderPickers(){
-  $("sellPicker").innerHTML = `${tokenIconHTML(state.sellToken)}<span>${state.sellToken.symbol}</span><span class="chev">▾</span>`;
-  $("buyPicker").innerHTML = `${tokenIconHTML(state.buyToken)}<span>${state.buyToken.symbol}</span><span class="chev">▾</span>`;
-}
-
-// ---------- token modal ----------
-function openTokenModal(target){
-  state.pickerTarget = target;
-  $("tokenSearch").value = "";
-  renderTokenList("");
-  $("tokenOverlay").classList.add("show");
-  $("tokenSearch").focus();
-}
-function renderTokenList(query){
-  const q = query.trim().toLowerCase();
-  const list = TOKENS.filter(t => t.symbol.toLowerCase().includes(q) || t.name.toLowerCase().includes(q));
-  $("tokenList").innerHTML = list.map(t => `
-    <div class="token-row" data-symbol="${t.symbol}">
-      <div class="token-icon" style="background:${t.color};width:34px;height:34px;font-size:14px">${t.symbol.slice(0,1)}</div>
-      <div>
-        <div class="tname">${t.symbol}</div>
-        <div class="tsym">${t.name}</div>
-      </div>
-    </div>
-  `).join("");
-  document.querySelectorAll(".token-row").forEach(row=>{
-    row.onclick = () => selectToken(row.dataset.symbol);
-  });
-}
-function selectToken(symbol){
-  const token = TOKENS.find(t => t.symbol === symbol);
-  if (state.pickerTarget === "sell"){
-    if (token.symbol === state.buyToken.symbol){ state.buyToken = state.sellToken; }
-    state.sellToken = token;
-  } else {
-    if (token.symbol === state.sellToken.symbol){ state.sellToken = state.buyToken; }
-    state.buyToken = token;
-  }
-  renderPickers();
-  $("tokenOverlay").classList.remove("show");
-  scheduleQuote();
-  refreshBalances();
-}
-
-$("sellPicker").onclick = () => openTokenModal("sell");
-$("buyPicker").onclick = () => openTokenModal("buy");
-$("tokenOverlay").onclick = (e)=>{ if(e.target.id==="tokenOverlay") $("tokenOverlay").classList.remove("show"); };
-$("tokenSearch").oninput = (e)=> renderTokenList(e.target.value);
-
-// ---------- swap direction ----------
-$("swapToggle").onclick = () => {
-  [state.sellToken, state.buyToken] = [state.buyToken, state.sellToken];
-  state.sellAmount = $("buyAmount").value || "";
-  $("sellAmount").value = state.sellAmount;
-  $("buyAmount").value = "";
-  renderPickers();
-  $("swapToggle").classList.toggle("spin");
-  scheduleQuote();
-  refreshBalances();
-};
-
-// ---------- details disclosure ----------
-$("detailsToggle").onclick = () => $("details").classList.toggle("open");
-
-// ---------- wallet ----------
-function reownProjectIdConfigured(){
-  return CONFIG.REOWN_PROJECT_ID && !CONFIG.REOWN_PROJECT_ID.includes("YOUR_REOWN_PROJECT_ID");
-}
-
-function isMobileDevice(){
-  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
-         (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); // iPadOS reports as Mac
-}
-
-function openInWalletBrowser(walletName){
-  const href = window.location.href;
-  if (!href.startsWith("http")){
-    toast("This page needs to be hosted at a real https:// address (not opened as a local file) for wallet apps to open it. Host it online, then open that link instead.", true);
-    return;
-  }
-  const bare = href.replace(/^https?:\/\//, "");
-  const links = {
-    metamask: `https://metamask.app.link/dapp/${bare}`,
-    coinbase: `https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(href)}`,
-  };
-  window.location.href = links[walletName];
-}
-
-function showMobileWalletChoices(){
-  const overlay = document.createElement("div");
-  overlay.className = "overlay show";
-  overlay.innerHTML = `
-    <div class="modal" style="max-width:340px">
-      <h3>Open with a wallet app</h3>
-      <div class="token-list">
-        <div class="token-row" id="mm-row">
-          <div class="token-icon" style="background:#F6851B;font-size:14px;width:34px;height:34px">M</div>
-          <div><div class="tname">MetaMask</div><div class="tsym">Opens this page in the MetaMask app</div></div>
-        </div>
-        <div class="token-row" id="cb-row">
-          <div class="token-icon" style="background:#0052FF;font-size:14px;width:34px;height:34px">C</div>
-          <div><div class="tname">Coinbase Wallet</div><div class="tsym">Opens this page in Coinbase Wallet</div></div>
+  <nav class="top">
+    <div class="brand">57<span class="e">e</span>X</div>
+    <div class="nav-links">
+      <a class="nav-link active" data-page="trade" href="#trade">Trade</a>
+      <a class="nav-link" data-page="markets" href="#markets">Markets</a>
+      <div class="dev-wrap">
+        <button class="dev-btn" id="devBtn">
+          Developer
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="dev-menu" id="devMenu">
+          <button data-target="api">API <span class="soon-tag">Coming soon</span></button>
+          <button data-target="docs">Docs <span class="soon-tag">Coming soon</span></button>
         </div>
       </div>
-      <div class="settings-hint" style="margin-top:12px">iOS and iPadOS Safari don't support in-page wallet connections directly — your wallet app needs to open this page itself in its built-in browser.</div>
-    </div>`;
-  document.body.appendChild(overlay);
-  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
-  overlay.querySelector("#mm-row").onclick = () => openInWalletBrowser("metamask");
-  overlay.querySelector("#cb-row").onclick = () => openInWalletBrowser("coinbase");
-}
+    </div>
+    <button class="wallet-btn" id="navWalletBtn">Connect wallet</button>
+  </nav>
 
-// Fallback path — only used if REOWN_PROJECT_ID isn't configured. Relies
-// on a browser-injected wallet, so it won't work in plain iOS/iPadOS
-// Safari (see showMobileWalletChoices for that case).
-async function legacyWalletConnect(){
-  if (state.wallet){
-    state.wallet = null; state.provider = null; state.signer = null;
-    $("walletBtn").classList.remove("connected");
-    $("walletLabel").textContent = "Connect wallet";
-    updateActionButton();
-    refreshBalances();
-    return;
-  }
-  if (!window.ethereum){
-    if (isMobileDevice()){
-      showMobileWalletChoices();
-    } else {
-      toast("No wallet found. Install MetaMask or another injected wallet to trade.", true);
-    }
-    return;
-  }
-  try{
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    const signer = provider.getSigner();
-    const address = await signer.getAddress();
-    state.provider = provider;
-    state.signer = signer;
-    state.wallet = address;
-    $("walletBtn").classList.add("connected");
-    $("walletLabel").textContent = address.slice(0,6) + "…" + address.slice(-4);
-    toast("Wallet connected");
-    refreshBalances();
-    updateActionButton();
-  }catch(err){
-    toast("Wallet connection was cancelled or failed.", true);
-  }
-}
+  <main>
+    <!-- ========== TRADE PAGE ========== -->
+    <section class="page active" id="page-trade">
+      <div class="hero">
+        <div class="hero-copy">
+          <h1>Trade the entire Ethereum economy from one screen.</h1>
+          <p class="lede">57eX prices every major asset on Ethereum in real time and shows you the exact cost before you ever connect a wallet — no surprises buried in the fine print.</p>
+          <div class="hero-stats">
+            <div class="stat">
+              <div class="num">0.15%</div>
+              <div class="lbl">Flat platform fee</div>
+            </div>
+            <div class="stat">
+              <div class="num" id="statCoinCount">—</div>
+              <div class="lbl">Ethereum assets listed</div>
+            </div>
+          </div>
+        </div>
 
-// Reown AppKit (WalletConnect) — the primary path. Shows a QR code on
-// desktop and hands off to the wallet app natively on mobile, which is
-// what makes this work in regular iOS/iPadOS Safari (no injected
-// window.ethereum required).
-let appKitModal = null;
-if (reownProjectIdConfigured()){
-  try{
-    appKitModal = createAppKit({
-      adapters: [new EthersAdapter()],
-      networks: [mainnet],
-      projectId: CONFIG.REOWN_PROJECT_ID,
-      metadata: {
-        name: "57eX",
-        description: "Trade crypto, instantly.",
-        url: window.location.origin, // must match the domain this page is hosted on
-        icons: ["https://avatars.githubusercontent.com/u/179229932"], // swap for your own logo URL
-      },
-      features: { analytics: false },
-    });
+        <div class="swap-card">
+          <h3>Swap</h3>
+          <div class="swap-box">
+            <div class="row-top"><span>You pay</span><span id="payUsd">$0.00</span></div>
+            <div class="row-main">
+              <input type="number" class="amount-input" id="payAmount" placeholder="0.0" min="0" value="1">
+              <div class="token-select" id="paySelectWrap">
+                <span class="coin-dot" id="payDot">Ξ</span>
+                <select id="payToken"></select>
+              </div>
+            </div>
+          </div>
 
-    appKitModal.subscribeProvider((s) => {
-      if (s.isConnected && s.provider && s.address){
-        state.provider = new ethers.providers.Web3Provider(s.provider);
-        state.signer = state.provider.getSigner();
-        state.wallet = s.address;
-        $("walletBtn").classList.add("connected");
-        $("walletLabel").textContent = s.address.slice(0,6) + "…" + s.address.slice(-4);
-        refreshBalances();
-      } else {
-        state.provider = null; state.signer = null; state.wallet = null;
-        $("walletBtn").classList.remove("connected");
-        $("walletLabel").textContent = "Connect wallet";
-      }
-      updateActionButton();
-    });
-  }catch(err){
-    console.error("Reown AppKit failed to initialize:", err);
-    appKitModal = null;
-  }
-}
+          <div class="swap-flip">
+            <button id="flipBtn" aria-label="Reverse tokens">
+              <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M6 4v12M6 16l-3-3M6 16l3-3M14 16V4M14 4l-3 3M14 4l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
 
-$("walletBtn").onclick = () => {
-  if (!appKitModal){
-    legacyWalletConnect();
-    return;
-  }
-  if (state.wallet){
-    appKitModal.open({ view: "Account" }); // lets the user disconnect from Reown's own UI
-  } else {
-    appKitModal.open({ view: "Connect", namespace: "eip155" });
-  }
-};
+          <div class="swap-box">
+            <div class="row-top"><span>You receive</span><span id="receiveUsd">$0.00</span></div>
+            <div class="row-main">
+              <input type="text" class="amount-input" id="receiveAmount" placeholder="0.0" readonly>
+              <div class="token-select" id="receiveSelectWrap">
+                <span class="coin-dot" id="receiveDot">$</span>
+                <select id="receiveToken"></select>
+              </div>
+            </div>
+          </div>
 
-async function refreshBalances(){
-  $("sellBalance").textContent = "";
-  $("buyBalance").textContent = "";
-  if (!state.wallet || !state.provider) return;
-  try{
-    for (const [key, token] of [["sellBalance", state.sellToken], ["buyBalance", state.buyToken]]){
-      let bal;
-      if (token.symbol === "ETH"){
-        bal = await state.provider.getBalance(state.wallet);
-        bal = ethers.utils.formatUnits(bal, 18);
-      } else {
-        const erc20 = new ethers.Contract(token.address, ["function balanceOf(address) view returns (uint256)"], state.provider);
-        const raw = await erc20.balanceOf(state.wallet);
-        bal = ethers.utils.formatUnits(raw, token.decimals);
-      }
-      $(key).textContent = "Balance: " + fmt(bal, 4);
-    }
-  }catch(e){ /* silent — balance display is best-effort */ }
-}
+          <div class="rate-line">
+            <span id="rateLabel">Fetching rate…</span>
+            <span class="val" id="rateVal"></span>
+          </div>
 
-// ---------- quoting ----------
-$("sellAmount").oninput = (e) => {
-  // sanitize to numeric
-  let v = e.target.value.replace(/[^0-9.]/g, "");
-  const parts = v.split(".");
-  if (parts.length > 2) v = parts[0] + "." + parts.slice(1).join("");
-  e.target.value = v;
-  state.sellAmount = v;
-  scheduleQuote();
-};
+          <button class="trade-cta" id="tradeBtn" disabled>Trade</button>
+          <p class="swap-footnote">Fees are always shown before you confirm anything.</p>
+        </div>
+      </div>
+    </section>
 
-function scheduleQuote(){
-  clearTimeout(state.quoteTimer);
-  $("buyUsd").textContent = "";
-  $("sellUsd").textContent = "";
-  const amt = parseFloat(state.sellAmount);
-  if (!amt || amt <= 0){
-    $("buyAmount").value = "";
-    state.quote = null;
-    resetDetails();
-    updateActionButton();
-    return;
-  }
-  $("actionBtn").textContent = "Fetching best price…";
-  $("actionBtn").disabled = true;
-  state.quoteTimer = setTimeout(fetchQuote, 450);
-}
+    <!-- ========== MARKETS PAGE ========== -->
+    <section class="page" id="page-markets">
+      <div class="markets-wrap">
+        <div class="markets-head">
+          <div>
+            <h2>Markets &amp; compare</h2>
+            <p>Add any coin to watch its price, daily range and trend — then stack it against other assets or a currency.</p>
+          </div>
+        </div>
 
-function resetDetails(){
-  $("rateText").textContent = "—";
-  $("feeAmount").textContent = "—";
-  $("gasAmount").textContent = "—";
-  $("minReceived").textContent = "—";
-}
+        <div class="add-coin-row">
+          <input type="text" id="coinSearchInput" placeholder="Search a coin to add — try “solana” or “dogecoin”" autocomplete="off">
+          <select id="vsCurrencySelect">
+            <option value="usd">USD</option>
+            <option value="eur">EUR</option>
+            <option value="gbp">GBP</option>
+            <option value="eth">ETH</option>
+            <option value="btc">BTC</option>
+          </select>
+          <div class="suggest-list" id="suggestList"></div>
+        </div>
 
-function buildParams(amt, extra={}){
-  const fixedStr = step("buildParams:toFixed", () =>
-    amt.toFixed(state.sellToken.decimals > 18 ? 18 : state.sellToken.decimals)
-  );
-  const sellAmountRaw = step("buildParams:parseUnits", () =>
-    ethers.utils.parseUnits(fixedStr, state.sellToken.decimals).toString()
-  );
+        <div class="markets-grid">
+          <div class="table-card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Asset</th>
+                  <th>Price</th>
+                  <th>24h high</th>
+                  <th>24h low</th>
+                  <th>24h change</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="watchlistBody"></tbody>
+            </table>
+            <div class="empty-state" id="watchlistEmpty">Your watchlist is empty. Search above to add your first coin.</div>
+          </div>
 
-  // Note: swapFeeBps and swapFeeRecipient are NOT sent from here —
-  // the proxy (/api/0x.js) sets those itself from server-side env vars,
-  // so they can't be tampered with by anything running in the browser.
-  return step("buildParams:new URLSearchParams", () => new URLSearchParams({
-    chainId: String(CHAIN_ID),
-    sellToken: state.sellToken.address,
-    buyToken: state.buyToken.address,
-    sellAmount: sellAmountRaw,
-    swapFeeToken: state.buyToken.address,
-    ...extra,
-  }));
-}
+          <div class="detail-card" id="detailCard" style="display:none;">
+            <div class="detail-head">
+              <div class="detail-title">
+                <span class="coin-dot" id="detailDot" style="width:34px;height:34px;font-size:13px;"></span>
+                <div>
+                  <div class="nm" id="detailName">—</div>
+                  <div class="detail-price" id="detailPrice">—</div>
+                </div>
+              </div>
+              <div class="range-btns" id="rangeBtns">
+                <button data-days="1">24H</button>
+                <button data-days="7" class="active">7D</button>
+                <button data-days="30">30D</button>
+                <button data-days="365">1Y</button>
+              </div>
+            </div>
+            <div class="hl-row">
+              <div class="hl-item"><div class="lbl">24h high</div><div class="v" id="detailHigh">—</div></div>
+              <div class="hl-item"><div class="lbl">24h low</div><div class="v" id="detailLow">—</div></div>
+              <div class="hl-item"><div class="lbl">24h change</div><div class="v" id="detailChange">—</div></div>
+              <div class="hl-item"><div class="lbl">Market cap</div><div class="v" id="detailMcap">—</div></div>
+            </div>
+            <div class="chart-holder"><canvas id="detailChart"></canvas></div>
+          </div>
 
-// Live pricing as the user types — uses `type=price`, which is indicative
-// only and does NOT require a connected wallet.
-// Runs fn() and, if it throws, tags the error with a step label before
-// rethrowing — lets us pinpoint exactly which operation failed instead of
-// just which function.
-function step(label, fn){
-  try{
-    return fn();
-  }catch(err){
-    if (!err.debugStep) err.debugStep = label; // keep the innermost (most specific) label
-    throw err;
-  }
-}
+          <div class="compare-card" id="compareCard" style="display:none;">
+            <div class="compare-head">
+              <h4>Compare performance</h4>
+              <div class="vs-currency">
+                <span style="font-size:12.5px;color:var(--text-2);margin-right:8px;">Base currency</span>
+                <select id="compareCurrencySelect">
+                  <option value="usd">USD</option>
+                  <option value="eur">EUR</option>
+                  <option value="gbp">GBP</option>
+                  <option value="btc">BTC</option>
+                  <option value="eth">ETH</option>
+                </select>
+              </div>
+            </div>
+            <p style="font-size:13px;color:var(--text-2);margin-bottom:12px;">Pick up to 4 coins to overlay their % change over the selected range.</p>
+            <div class="compare-chips" id="compareChips"></div>
+            <div class="chart-holder"><canvas id="compareChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
 
-async function fetchQuote(){
-  const amt = parseFloat(state.sellAmount);
-  if (!amt || amt <= 0) return;
+  <footer>
+    <span>57eX — Capital at risk.</span>
+  </footer>
 
-  try{
-    const params = step("buildParams", () => buildParams(amt));
-    const url = step("build fetch URL", () => `${PROXY_URL}?type=price&${params.toString()}`);
-    const res = await fetch(url);
-    const data = await res.json();
+  <!-- ===== Modal: Fees ===== -->
+  <div class="modal-overlay" id="modalFees">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Review your trade</h3>
+        <button class="modal-close" data-close="modalFees">✕</button>
+      </div>
+      <div class="fee-row">
+        <div class="lbl">You pay<small id="feePaySub">—</small></div>
+        <div class="val" id="feePayVal">—</div>
+      </div>
+      <div class="fee-row">
+        <div class="lbl">You receive (est.)<small id="feeReceiveSub">—</small></div>
+        <div class="val" id="feeReceiveVal">—</div>
+      </div>
+      <div class="fee-row">
+        <div class="lbl">Platform fee<small>0.15% of trade value</small></div>
+        <div class="val" id="feePlatformVal">—</div>
+      </div>
+      <div class="fee-row">
+        <div class="lbl">Network fee<small>Estimated, varies with congestion</small></div>
+        <div class="val" id="feeNetworkVal">—</div>
+      </div>
+      <div class="fee-total">
+        <span>Total cost</span>
+        <span id="feeTotalVal">—</span>
+      </div>
+      <button class="modal-primary-btn" id="confirmTradeBtn">Confirm trade</button>
+    </div>
+  </div>
 
-    if (!res.ok || data.code){
-      throw new Error(data.reason || data.validationErrors?.[0]?.reason || data.description || "Couldn't fetch a price right now.");
-    }
+  <!-- ===== Modal: Connect wallet ===== -->
+  <div class="modal-overlay" id="modalWallet">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Connect a wallet</h3>
+        <button class="modal-close" data-close="modalWallet">✕</button>
+      </div>
+      <button class="wallet-option" data-wallet="MetaMask">
+        <span class="wallet-icon" style="background:#f6851b22;">🦊</span> MetaMask
+      </button>
+      <button class="wallet-option" data-wallet="Trust Wallet">
+        <span class="wallet-icon" style="background:#0088cc22;">🛡️</span> Trust Wallet
+      </button>
+      <button class="wallet-option" data-wallet="Coinbase Wallet">
+        <span class="wallet-icon" style="background:#0052ff22;">🔷</span> Coinbase Wallet
+      </button>
+      <button class="wallet-option" data-wallet="WalletConnect">
+        <span class="wallet-icon" style="background:#3fe8c422;">🔗</span> WalletConnect
+      </button>
+    </div>
+  </div>
 
-    state.quote = data; // indicative — re-fetched as a real /quote at execution time
-    const buyAmt = step("formatUnits(buyAmount)", () => ethers.utils.formatUnits(data.buyAmount, state.buyToken.decimals));
-    step("set buyAmount field", () => { $("buyAmount").value = fmt(buyAmt, 6); });
+  <!-- ===== Modal: Country unsupported ===== -->
+  <div class="modal-overlay" id="modalUnsupported">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Almost there</h3>
+        <button class="modal-close" data-close="modalUnsupported">✕</button>
+      </div>
+      <div class="unsupported-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#e8b93f" stroke-width="1.6"/><path d="M12 8v5" stroke="#e8b93f" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="16" r="0.9" fill="#e8b93f"/></svg>
+      </div>
+      <p class="body-text">Thanks for giving 57eX a try. It looks like your country isn't currently supported for trading — we're working through regional approvals and hope to bring you on board soon.</p>
+      <p class="body-text" style="margin-top:10px;">In the meantime, feel free to explore live prices and charts on the Markets page.</p>
+      <button class="modal-primary-btn" data-close="modalUnsupported">Got it</button>
+    </div>
+  </div>
 
-    const rate = (parseFloat(buyAmt) / amt);
-    step("set rateText", () => { $("rateText").textContent = `1 ${state.sellToken.symbol} = ${fmt(rate, 6)} ${state.buyToken.symbol}`; });
-
-    const feeInBuyToken = amt * rate * (FEE_BPS/10000);
-    step("set feeAmount", () => { $("feeAmount").textContent = `${fmt(feeInBuyToken, 6)} ${state.buyToken.symbol}`; });
-
-    if (data.totalNetworkFee){
-      step("set gasAmount", () => {
-        const gasEth = ethers.utils.formatEther(data.totalNetworkFee);
-        $("gasAmount").textContent = `~${fmt(gasEth, 5)} ETH`;
-      });
-    } else {
-      $("gasAmount").textContent = "Shown before you sign";
-    }
-
-    const slippageBuffer = 0.995; // display-only estimate; the real /quote applies actual slippage settings
-    step("set minReceived", () => { $("minReceived").textContent = `${fmt(parseFloat(buyAmt) * slippageBuffer, 6)} ${state.buyToken.symbol}`; });
-
-    updateActionButton();
-  }catch(err){
-    showDebugInfo(`fetchQuote${err.debugStep ? " → " + err.debugStep : ""}`, err);
-    $("buyAmount").value = "";
-    resetDetails();
-    $("actionBtn").textContent = explainNetworkError(err);
-    $("actionBtn").classList.add("err");
-    $("actionBtn").disabled = true;
-    setTimeout(()=>$("actionBtn").classList.remove("err"), 2500);
-  }
-}
-
-// ---------- action button state ----------
-function updateActionButton(){
-  const btn = $("actionBtn");
-  btn.onclick = executeSwap;
-  const amt = parseFloat(state.sellAmount);
-  if (!amt || amt <= 0){
-    btn.textContent = "Enter an amount"; btn.disabled = true; return;
-  }
-  if (!state.quote){
-    btn.textContent = "Fetching best price…"; btn.disabled = true; return;
-  }
-  if (!state.wallet){
-    btn.textContent = "Connect wallet to trade"; btn.disabled = false;
-    btn.onclick = () => $("walletBtn").click();
-    return;
-  }
-  btn.textContent = `Trade ${state.sellToken.symbol} for ${state.buyToken.symbol}`;
-  btn.disabled = false;
-}
-
-// ---------- execute swap ----------
-async function executeSwap(){
-  if (!state.signer || !state.wallet) return;
-  const btn = $("actionBtn");
-  btn.disabled = true;
-  try{
-    // Re-fetch as an executable /quote now that we have a taker —
-    // this is the step that returns real signable transaction data.
-    btn.textContent = "Preparing trade…";
-    const amt = parseFloat(state.sellAmount);
-    const params = buildParams(amt, { taker: state.wallet });
-    const res = await fetch(`${PROXY_URL}?type=quote&${params.toString()}`);
-    const freshQuote = await res.json();
-    if (!res.ok || freshQuote.code){
-      throw new Error(freshQuote.reason || freshQuote.validationErrors?.[0]?.reason || freshQuote.description || "Couldn't prepare the trade.");
-    }
-    state.quote = freshQuote;
-
-    btn.textContent = "Confirm in your wallet…";
-
-    // ERC20 approval to Permit2, if needed (skip for native ETH)
-    if (state.sellToken.symbol !== "ETH" && state.quote.issues?.allowance){
-      const spender = state.quote.issues.allowance.spender;
-      const erc20 = new ethers.Contract(
-        state.sellToken.address,
-        ["function approve(address spender, uint256 amount) returns (bool)"],
-        state.signer
-      );
-      const tx = await erc20.approve(spender, ethers.constants.MaxUint256);
-      toast("Approving token — confirm the second prompt to trade.");
-      await tx.wait();
-    }
-
-    // Sign Permit2 EIP-712 message if the quote requires it
-    let signature;
-    if (state.quote.permit2?.eip712){
-      signature = await state.signer._signTypedData(
-        state.quote.permit2.eip712.domain,
-        state.quote.permit2.eip712.types,
-        state.quote.permit2.eip712.message
-      );
-    }
-
-    let txData = state.quote.transaction.data;
-    if (signature){
-      const sigLengthHex = ethers.utils.hexZeroPad(
-        ethers.utils.hexlify(ethers.utils.arrayify(signature).length), 32
-      );
-      txData = ethers.utils.hexConcat([txData, sigLengthHex, signature]);
-    }
-
-    const txRequest = {
-      to: state.quote.transaction.to,
-      data: txData,
-      value: state.quote.transaction.value ? ethers.BigNumber.from(state.quote.transaction.value) : 0,
-    };
-
-    btn.textContent = "Confirm the trade in your wallet…";
-    const sentTx = await state.signer.sendTransaction(txRequest);
-    toast("Trade submitted — waiting for confirmation…");
-    btn.textContent = "Trade submitted…";
-    await sentTx.wait();
-    toast("Trade complete ✓");
-    btn.textContent = "Trade complete ✓";
-    setTimeout(()=>{
-      state.sellAmount = ""; $("sellAmount").value = "";
-      $("buyAmount").value = "";
-      state.quote = null;
-      resetDetails();
-      updateActionButton();
-      refreshBalances();
-    }, 1600);
-  }catch(err){
-    showDebugInfo("executeSwap", err);
-    toast(err.message?.includes("user rejected") ? "Trade cancelled" : explainNetworkError(err), true);
-    updateActionButton();
-  }
-}
-
-// ---------- init ----------
-renderPickers();
-resetDetails();
-updateActionButton();
-if (!reownProjectIdConfigured()){
-  setTimeout(()=> toast("No Reown project ID set — wallet connect will fall back to injected wallets only (won't work in plain iOS Safari)."), 600);
-}
-</script>
+  <div class="toast" id="toast"></div>
 
 <script>
-/* ============================================================
-   Price ticker — CoinGecko-powered banner
-   ============================================================
-   Independent of the swap logic above: pulls live prices + 24h
-   change from CoinGecko's free public API and renders a
-   continuously-scrolling strip pinned to the top of the page.
-   Green when a coin is up over the last 24h, red when it's down.
-   Runs regardless of the developer-access gate state.
-   ============================================================ */
 (function(){
-  const TICKER_COINS = [
-    { id:"bitcoin",       symbol:"BTC"   },
-    { id:"ethereum",      symbol:"ETH"   },
-    { id:"tether",        symbol:"USDT"  },
-    { id:"binancecoin",   symbol:"BNB"   },
-    { id:"solana",        symbol:"SOL"   },
-    { id:"ripple",        symbol:"XRP"   },
-    { id:"usd-coin",      symbol:"USDC"  },
-    { id:"cardano",       symbol:"ADA"   },
-    { id:"dogecoin",      symbol:"DOGE"  },
-    { id:"avalanche-2",   symbol:"AVAX"  },
-    { id:"polkadot",      symbol:"DOT"   },
-    { id:"chainlink",     symbol:"LINK"  },
-    { id:"matic-network", symbol:"MATIC" },
-    { id:"litecoin",      symbol:"LTC"   },
+  "use strict";
+
+  const API = "https://api.coingecko.com/api/v3";
+  const PLATFORM_FEE_RATE = 0.0015;
+
+  // Curated set of Ethereum-network assets (ETH itself + major ERC-20s)
+  const ETH_ECOSYSTEM_IDS = [
+    "ethereum","usd-coin","tether","dai","wrapped-bitcoin","chainlink",
+    "uniswap","shiba-inu","aave","the-graph","maker","arbitrum",
+    "optimism","pepe","curve-dao-token","lido-dao","havven","1inch",
+    "compound-governance-token","injective-protocol"
   ];
 
-  const REFRESH_MS = 60000; // CoinGecko's free tier is rate-limited — once a minute is plenty for a ticker
-  const track = document.getElementById("tickerTrack");
+  const COIN_META = {
+    "ethereum":{sym:"ETH",color:"#627eea"},
+    "usd-coin":{sym:"USDC",color:"#2775ca"},
+    "tether":{sym:"USDT",color:"#26a17b"},
+    "dai":{sym:"DAI",color:"#f5ac37"},
+    "wrapped-bitcoin":{sym:"WBTC",color:"#f7931a"},
+    "chainlink":{sym:"LINK",color:"#2a5ada"},
+    "uniswap":{sym:"UNI",color:"#ff007a"},
+    "shiba-inu":{sym:"SHIB",color:"#f00500"},
+    "aave":{sym:"AAVE",color:"#b6509e"},
+    "the-graph":{sym:"GRT",color:"#6747ed"},
+    "maker":{sym:"MKR",color:"#1aab9b"},
+    "arbitrum":{sym:"ARB",color:"#28a0f0"},
+    "optimism":{sym:"OP",color:"#ff0420"},
+    "pepe":{sym:"PEPE",color:"#4c9a2a"},
+    "curve-dao-token":{sym:"CRV",color:"#3f66fc"},
+    "lido-dao":{sym:"LDO",color:"#00a3ff"},
+    "havven":{sym:"SNX",color:"#00d1ff"},
+    "1inch":{sym:"1INCH",color:"#94a6c3"},
+    "compound-governance-token":{sym:"COMP",color:"#00d395"},
+    "injective-protocol":{sym:"INJ",color:"#38bdf8"}
+  };
 
-  function formatPrice(p){
-    if (p === undefined || p === null) return "—";
-    if (p >= 1000) return "$" + p.toLocaleString(undefined, { maximumFractionDigits: 0 });
-    if (p >= 1)    return "$" + p.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    return "$" + p.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  const fmtUsd = (n)=>{
+    if(n===null||n===undefined||isNaN(n)) return "—";
+    if(n>=1) return "$"+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+    return "$"+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6});
+  };
+  const fmtNum = (n,dp=6)=>{
+    if(n===null||n===undefined||isNaN(n)) return "—";
+    return n.toLocaleString(undefined,{maximumFractionDigits:dp});
+  };
+  const fmtPct = (n)=>{
+    if(n===null||n===undefined||isNaN(n)) return "—";
+    return (n>=0?"+":"")+n.toFixed(2)+"%";
+  };
+  function dotStyle(id){
+    const meta = COIN_META[id];
+    const color = meta ? meta.color : "#3fe8c4";
+    return `background:${color};`;
+  }
+  function initials(sym){ return (sym||"?").slice(0,1).toUpperCase(); }
+
+  function showToast(msg){
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(t._timer);
+    t._timer = setTimeout(()=>t.classList.remove("show"), 2600);
   }
 
-  function itemsHTML(prices){
-    return TICKER_COINS.map(c => {
-      const d = prices[c.id];
-      if (!d || d.usd === undefined) return "";
-      const change = d.usd_24h_change ?? 0;
-      const isUp = change >= 0;
-      const arrow = isUp ? "▲" : "▼";
-      const dirClass = isUp ? "up" : "down";
-      return `
-        <span class="ticker-item">
-          <span class="tsym">${c.symbol}</span>
-          <span class="tprice">${formatPrice(d.usd)}</span>
-          <span class="tchange ${dirClass}"><span class="tarrow">${arrow}</span>${Math.abs(change).toFixed(2)}%</span>
-        </span>`;
-    }).join("");
+  // ---------------- state ----------------
+  const state = {
+    ethMarkets: [],          // markets data for ETH ecosystem coins
+    ethMarketsById: {},
+    watchlist: [],           // array of coin ids
+    watchlistData: {},       // id -> market data (any coin, any category)
+    selectedDetailId: null,
+    detailDays: 7,
+    compareSelected: [],     // ids selected for compare (max 4)
+    vsCurrency: "usd",
+    chartInstance: null,
+    compareChartInstance: null
+  };
+
+  // ---------------- fetch helpers ----------------
+  async function fetchJson(url){
+    const res = await fetch(url);
+    if(!res.ok) throw new Error("Request failed: "+res.status);
+    return res.json();
   }
 
-  async function refreshTicker(){
+  async function fetchEthMarkets(){
     try{
-      const ids = TICKER_COINS.map(c => c.id).join(",");
-      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("CoinGecko request failed (" + res.status + ")");
-      const prices = await res.json();
-      const html = itemsHTML(prices);
-      if (!html){ throw new Error("No price data returned"); }
-      // duplicate the row so the marquee can loop seamlessly at -50%
-      track.innerHTML = html + html;
+      const ids = ETH_ECOSYSTEM_IDS.join(",");
+      const url = `${API}/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&price_change_percentage=24h&sparkline=false`;
+      const data = await fetchJson(url);
+      state.ethMarkets = data;
+      state.ethMarketsById = {};
+      data.forEach(c=>state.ethMarketsById[c.id]=c);
+      document.getElementById("statCoinCount").textContent = data.length;
+      renderTicker();
+      populateTokenSelects();
+      computeQuote();
     }catch(err){
-      // keep whatever was already showing rather than blanking the bar;
-      // only show an error state if we have nothing on screen yet
-      if (!track.querySelector(".ticker-item")){
-        track.innerHTML = `<span class="ticker-loading">Prices unavailable — ${err.message}</span>`;
-      }
+      console.error("eth markets fetch failed", err);
     }
   }
 
-  refreshTicker();
-  setInterval(refreshTicker, REFRESH_MS);
+  // ---------------- ticker ----------------
+  function renderTicker(){
+    const list = state.ethMarkets;
+    if(!list || !list.length) return;
+    const items = list.map(c=>{
+      const chg = c.price_change_percentage_24h;
+      const cls = (chg>=0)?"up":"down";
+      const arrow = (chg>=0)?"▲":"▼";
+      const meta = COIN_META[c.id] || {sym:c.symbol.toUpperCase()};
+      return `<span class="ticker-item"><span class="sym">${meta.sym}</span>${fmtUsd(c.current_price)}<span class="chg ${cls}">${arrow} ${fmtPct(chg)}</span></span>`;
+    }).join("");
+    document.getElementById("tickerTrack").innerHTML = items + items; // duplicate for seamless loop
+  }
+
+  // ---------------- trade / swap card ----------------
+  function populateTokenSelects(){
+    const paySel = document.getElementById("payToken");
+    const recvSel = document.getElementById("receiveToken");
+    if(paySel.options.length) return; // populate once
+    const opts = state.ethMarkets.map(c=>{
+      const meta = COIN_META[c.id] || {sym:c.symbol.toUpperCase()};
+      return `<option value="${c.id}">${meta.sym} · ${c.name}</option>`;
+    }).join("");
+    paySel.innerHTML = opts;
+    recvSel.innerHTML = opts;
+    paySel.value = "ethereum";
+    recvSel.value = "usd-coin";
+    updateDot("payDot", "ethereum");
+    updateDot("receiveDot", "usd-coin");
+  }
+
+  function updateDot(elId, coinId){
+    const el = document.getElementById(elId);
+    const meta = COIN_META[coinId] || {sym:"?"};
+    el.style.cssText = "width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#06110e;flex-shrink:0;" + dotStyle(coinId);
+    el.textContent = initials(meta.sym);
+  }
+
+  function computeQuote(){
+    const payId = document.getElementById("payToken").value;
+    const recvId = document.getElementById("receiveToken").value;
+    const amount = parseFloat(document.getElementById("payAmount").value) || 0;
+    const payCoin = state.ethMarketsById[payId];
+    const recvCoin = state.ethMarketsById[recvId];
+    const tradeBtn = document.getElementById("tradeBtn");
+
+    if(!payCoin || !recvCoin){
+      tradeBtn.disabled = true;
+      return;
+    }
+    const payUsdPrice = payCoin.current_price;
+    const recvUsdPrice = recvCoin.current_price;
+    const payUsdValue = amount * payUsdPrice;
+    const rate = payUsdPrice / recvUsdPrice;
+    const receiveAmountGross = amount * rate;
+    const fee = receiveAmountGross * PLATFORM_FEE_RATE;
+    const receiveAmountNet = receiveAmountGross - fee;
+
+    document.getElementById("payUsd").textContent = fmtUsd(payUsdValue);
+    document.getElementById("receiveAmount").value = amount>0 ? fmtNum(receiveAmountNet, 6) : "";
+    document.getElementById("receiveUsd").textContent = fmtUsd(receiveAmountNet * recvUsdPrice);
+
+    const payMeta = COIN_META[payId] || {sym:payCoin.symbol.toUpperCase()};
+    const recvMeta = COIN_META[recvId] || {sym:recvCoin.symbol.toUpperCase()};
+    document.getElementById("rateLabel").textContent = `1 ${payMeta.sym} ≈`;
+    document.getElementById("rateVal").textContent = `${fmtNum(rate,6)} ${recvMeta.sym}`;
+
+    tradeBtn.disabled = !(amount>0);
+
+    // stash for fee modal
+    state._quote = {payId, recvId, amount, payUsdValue, receiveAmountGross, receiveAmountNet, fee, recvUsdPrice, payMeta, recvMeta};
+  }
+
+  function openFeeModal(){
+    const q = state._quote;
+    if(!q) return;
+    document.getElementById("feePaySub").textContent = `${fmtNum(q.amount,6)} ${q.payMeta.sym}`;
+    document.getElementById("feePayVal").textContent = fmtUsd(q.payUsdValue);
+    document.getElementById("feeReceiveSub").textContent = `${fmtNum(q.receiveAmountNet,6)} ${q.recvMeta.sym}`;
+    document.getElementById("feeReceiveVal").textContent = fmtUsd(q.receiveAmountNet * q.recvUsdPrice);
+    document.getElementById("feePlatformVal").textContent = fmtUsd(q.fee * q.recvUsdPrice);
+    const networkFeeUsd = 1.5 + Math.random()*3; // illustrative estimate
+    document.getElementById("feeNetworkVal").textContent = "~"+fmtUsd(networkFeeUsd);
+    document.getElementById("feeTotalVal").textContent = fmtUsd(q.payUsdValue + networkFeeUsd);
+    openModal("modalFees");
+  }
+
+  // ---------------- modal helpers ----------------
+  function openModal(id){ document.getElementById(id).classList.add("show"); }
+  function closeModal(id){ document.getElementById(id).classList.remove("show"); }
+
+  document.querySelectorAll("[data-close]").forEach(btn=>{
+    btn.addEventListener("click", ()=>closeModal(btn.dataset.close));
+  });
+  document.querySelectorAll(".modal-overlay").forEach(ov=>{
+    ov.addEventListener("click", (e)=>{ if(e.target===ov) ov.classList.remove("show"); });
+  });
+
+  document.getElementById("tradeBtn").addEventListener("click", openFeeModal);
+  document.getElementById("confirmTradeBtn").addEventListener("click", ()=>{
+    closeModal("modalFees");
+    openModal("modalWallet");
+  });
+  document.getElementById("navWalletBtn").addEventListener("click", ()=>openModal("modalWallet"));
+
+  document.querySelectorAll(".wallet-option").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      closeModal("modalWallet");
+      openModal("modalUnsupported");
+    });
+  });
+
+  document.getElementById("payAmount").addEventListener("input", computeQuote);
+  document.getElementById("payToken").addEventListener("change", (e)=>{ updateDot("payDot", e.target.value); computeQuote(); });
+  document.getElementById("receiveToken").addEventListener("change", (e)=>{ updateDot("receiveDot", e.target.value); computeQuote(); });
+  document.getElementById("flipBtn").addEventListener("click", ()=>{
+    const paySel = document.getElementById("payToken");
+    const recvSel = document.getElementById("receiveToken");
+    const tmp = paySel.value;
+    paySel.value = recvSel.value;
+    recvSel.value = tmp;
+    updateDot("payDot", paySel.value);
+    updateDot("receiveDot", recvSel.value);
+    computeQuote();
+  });
+
+  // ---------------- nav / page switching ----------------
+  document.querySelectorAll(".nav-link").forEach(link=>{
+    link.addEventListener("click",(e)=>{
+      e.preventDefault();
+      const target = link.dataset.page;
+      document.querySelectorAll(".nav-link").forEach(l=>l.classList.remove("active"));
+      link.classList.add("active");
+      document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+      document.getElementById("page-"+target).classList.add("active");
+    });
+  });
+
+  // ---------------- developer menu ----------------
+  const devBtn = document.getElementById("devBtn");
+  const devMenu = document.getElementById("devMenu");
+  devBtn.addEventListener("click", (e)=>{
+    e.stopPropagation();
+    devBtn.classList.toggle("open");
+    devMenu.classList.toggle("show");
+  });
+  document.addEventListener("click", ()=>{
+    devBtn.classList.remove("open");
+    devMenu.classList.remove("show");
+  });
+  devMenu.querySelectorAll("button").forEach(btn=>{
+    btn.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      const which = btn.dataset.target === "api" ? "API" : "Docs";
+      showToast(`57eX ${which} — coming soon.`);
+      devMenu.classList.remove("show");
+      devBtn.classList.remove("open");
+    });
+  });
+
+  // ================= MARKETS PAGE =================
+  const searchInput = document.getElementById("coinSearchInput");
+  const suggestList = document.getElementById("suggestList");
+  let searchTimer = null;
+
+  searchInput.addEventListener("input", ()=>{
+    clearTimeout(searchTimer);
+    const q = searchInput.value.trim();
+    if(q.length<2){ suggestList.classList.remove("show"); return; }
+    searchTimer = setTimeout(()=>runSearch(q), 380);
+  });
+  document.addEventListener("click",(e)=>{
+    if(!suggestList.contains(e.target) && e.target!==searchInput){
+      suggestList.classList.remove("show");
+    }
+  });
+
+  async function runSearch(q){
+    try{
+      const data = await fetchJson(`${API}/search?query=${encodeURIComponent(q)}`);
+      const coins = (data.coins||[]).slice(0,8);
+      if(!coins.length){
+        suggestList.innerHTML = `<div class="suggest-item">No matches found</div>`;
+        suggestList.classList.add("show");
+        return;
+      }
+      suggestList.innerHTML = coins.map(c=>`
+        <div class="suggest-item" data-id="${c.id}">
+          <span class="name">${c.name}</span>
+          <span class="sym">${c.symbol.toUpperCase()}</span>
+        </div>`).join("");
+      suggestList.classList.add("show");
+      suggestList.querySelectorAll(".suggest-item[data-id]").forEach(item=>{
+        item.addEventListener("click", ()=>{
+          addToWatchlist(item.dataset.id);
+          suggestList.classList.remove("show");
+          searchInput.value = "";
+        });
+      });
+    }catch(err){
+      console.error("search failed", err);
+      showToast("Search is temporarily unavailable — try again shortly.");
+    }
+  }
+
+  async function addToWatchlist(id){
+    if(state.watchlist.includes(id)) { showToast("Already on your watchlist."); return; }
+    state.watchlist.push(id);
+    await refreshWatchlistData();
+    renderWatchlist();
+    renderCompareChips();
+    if(!state.selectedDetailId) selectDetail(id);
+  }
+
+  function removeFromWatchlist(id){
+    state.watchlist = state.watchlist.filter(x=>x!==id);
+    delete state.watchlistData[id];
+    state.compareSelected = state.compareSelected.filter(x=>x!==id);
+    if(state.selectedDetailId===id){
+      state.selectedDetailId = state.watchlist[0] || null;
+      if(state.selectedDetailId) selectDetail(state.selectedDetailId);
+      else document.getElementById("detailCard").style.display = "none";
+    }
+    renderWatchlist();
+    renderCompareChips();
+    renderCompareChart();
+  }
+
+  async function refreshWatchlistData(){
+    if(!state.watchlist.length) return;
+    try{
+      const ids = state.watchlist.join(",");
+      const data = await fetchJson(`${API}/coins/markets?vs_currency=${state.vsCurrency}&ids=${ids}&order=market_cap_desc&price_change_percentage=24h&sparkline=false`);
+      data.forEach(c=>state.watchlistData[c.id]=c);
+    }catch(err){
+      console.error("watchlist refresh failed", err);
+    }
+  }
+
+  function renderWatchlist(){
+    const body = document.getElementById("watchlistBody");
+    const empty = document.getElementById("watchlistEmpty");
+    if(!state.watchlist.length){
+      body.innerHTML = "";
+      empty.style.display = "block";
+      return;
+    }
+    empty.style.display = "none";
+    body.innerHTML = state.watchlist.map(id=>{
+      const c = state.watchlistData[id];
+      if(!c) return "";
+      const chg = c.price_change_percentage_24h;
+      const chgCls = chg>=0 ? "up" : "down";
+      const selected = id===state.selectedDetailId ? "selected" : "";
+      return `
+      <tr class="${selected}" data-id="${id}">
+        <td>
+          <div class="coin-cell">
+            <span class="coin-dot" style="width:26px;height:26px;font-size:10px;${dotStyle(id)}">${initials(c.symbol)}</span>
+            <div><div class="nm">${c.name}</div><div class="sy">${c.symbol.toUpperCase()}</div></div>
+          </div>
+        </td>
+        <td class="mono">${fmtUsd(c.current_price)}</td>
+        <td class="mono">${fmtUsd(c.high_24h)}</td>
+        <td class="mono">${fmtUsd(c.low_24h)}</td>
+        <td class="chg ${chgCls}">${fmtPct(chg)}</td>
+        <td><button class="remove-btn" data-remove="${id}" title="Remove">✕</button></td>
+      </tr>`;
+    }).join("");
+
+    body.querySelectorAll("tr[data-id]").forEach(row=>{
+      row.addEventListener("click",(e)=>{
+        if(e.target.closest("[data-remove]")) return;
+        selectDetail(row.dataset.id);
+      });
+    });
+    body.querySelectorAll("[data-remove]").forEach(btn=>{
+      btn.addEventListener("click",(e)=>{
+        e.stopPropagation();
+        removeFromWatchlist(btn.dataset.remove);
+      });
+    });
+  }
+
+  async function selectDetail(id){
+    state.selectedDetailId = id;
+    renderWatchlist();
+    const card = document.getElementById("detailCard");
+    card.style.display = "block";
+    const c = state.watchlistData[id];
+    if(!c) return;
+    document.getElementById("detailDot").style.cssText = "width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#06110e;" + dotStyle(id);
+    document.getElementById("detailDot").textContent = initials(c.symbol);
+    document.getElementById("detailName").textContent = `${c.name} · ${c.symbol.toUpperCase()}`;
+    document.getElementById("detailPrice").textContent = fmtUsd(c.current_price);
+    document.getElementById("detailHigh").textContent = fmtUsd(c.high_24h);
+    document.getElementById("detailLow").textContent = fmtUsd(c.low_24h);
+    const chg = c.price_change_percentage_24h;
+    const chgEl = document.getElementById("detailChange");
+    chgEl.textContent = fmtPct(chg);
+    chgEl.style.color = chg>=0 ? "var(--up)" : "var(--down)";
+    document.getElementById("detailMcap").textContent = c.market_cap ? "$"+Math.round(c.market_cap).toLocaleString() : "—";
+    await renderDetailChart(id, state.detailDays);
+  }
+
+  document.getElementById("rangeBtns").addEventListener("click",(e)=>{
+    const btn = e.target.closest("button");
+    if(!btn) return;
+    document.querySelectorAll("#rangeBtns button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    state.detailDays = parseInt(btn.dataset.days,10);
+    if(state.selectedDetailId) renderDetailChart(state.selectedDetailId, state.detailDays);
+  });
+
+  const chartCache = {}; // key: id-days-currency -> {labels, prices}
+
+  async function fetchMarketChart(id, days, currency){
+    const key = `${id}-${days}-${currency}`;
+    if(chartCache[key]) return chartCache[key];
+    const data = await fetchJson(`${API}/coins/${id}/market_chart?vs_currency=${currency}&days=${days}`);
+    const prices = data.prices || [];
+    const result = {
+      labels: prices.map(p=>new Date(p[0])),
+      values: prices.map(p=>p[1])
+    };
+    chartCache[key] = result;
+    return result;
+  }
+
+  async function renderDetailChart(id, days){
+    const holder = document.getElementById("detailChart").parentElement;
+    holder.innerHTML = `<canvas id="detailChart"></canvas>`;
+    const ctx = document.getElementById("detailChart");
+    try{
+      const {labels, values} = await fetchMarketChart(id, days, state.vsCurrency);
+      const up = values[values.length-1] >= values[0];
+      if(state.chartInstance) state.chartInstance.destroy();
+      state.chartInstance = new Chart(ctx, {
+        type:"line",
+        data:{
+          labels,
+          datasets:[{
+            data: values,
+            borderColor: up ? "#28c98a" : "#f2555a",
+            backgroundColor: up ? "rgba(40,201,138,0.08)" : "rgba(242,85,90,0.08)",
+            borderWidth:2,
+            pointRadius:0,
+            fill:true,
+            tension:0.25
+          }]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{legend:{display:false}, tooltip:{mode:"index",intersect:false}},
+          scales:{
+            x:{type:"time", time:{unit: days<=1?"hour":(days<=30?"day":"month")}, grid:{color:"#1c212d"}, ticks:{color:"#6d7488", maxTicksLimit:6}},
+            y:{grid:{color:"#1c212d"}, ticks:{color:"#6d7488"}}
+          }
+        }
+      });
+    }catch(err){
+      holder.innerHTML = `<div class="chart-placeholder">Chart data unavailable right now — please try again shortly.</div>`;
+      console.error("chart fetch failed", err);
+    }
+  }
+
+  // ---- compare ----
+  function renderCompareChips(){
+    const wrap = document.getElementById("compareChips");
+    const compareCard = document.getElementById("compareCard");
+    if(!state.watchlist.length){ compareCard.style.display="none"; return; }
+    compareCard.style.display = "block";
+    wrap.innerHTML = state.watchlist.map(id=>{
+      const c = state.watchlistData[id];
+      const active = state.compareSelected.includes(id) ? "active" : "";
+      return `<div class="chip ${active}" data-id="${id}">${c ? c.symbol.toUpperCase() : id}</div>`;
+    }).join("");
+    wrap.querySelectorAll(".chip").forEach(chip=>{
+      chip.addEventListener("click", ()=>{
+        const id = chip.dataset.id;
+        if(state.compareSelected.includes(id)){
+          state.compareSelected = state.compareSelected.filter(x=>x!==id);
+        }else{
+          if(state.compareSelected.length>=4){ showToast("You can compare up to 4 coins at once."); return; }
+          state.compareSelected.push(id);
+        }
+        renderCompareChips();
+        renderCompareChart();
+      });
+    });
+  }
+
+  async function renderCompareChart(){
+    const holder = document.getElementById("compareChart").parentElement;
+    if(!state.compareSelected.length){
+      holder.innerHTML = `<canvas id="compareChart"></canvas>`;
+      if(state.compareChartInstance){ state.compareChartInstance.destroy(); state.compareChartInstance=null; }
+      return;
+    }
+    holder.innerHTML = `<canvas id="compareChart"></canvas>`;
+    const ctx = document.getElementById("compareChart");
+    try{
+      const currency = document.getElementById("compareCurrencySelect").value;
+      const days = state.detailDays;
+      const palette = ["#3fe8c4","#7c6cf0","#e8b93f","#f2555a"];
+      const datasets = [];
+      for(let i=0;i<state.compareSelected.length;i++){
+        const id = state.compareSelected[i];
+        const {labels, values} = await fetchMarketChart(id, days, currency);
+        if(!values.length) continue;
+        const base = values[0];
+        const pct = values.map(v=>((v-base)/base)*100);
+        const c = state.watchlistData[id];
+        datasets.push({
+          label: c ? c.symbol.toUpperCase() : id,
+          data: pct,
+          borderColor: palette[i%palette.length],
+          backgroundColor:"transparent",
+          borderWidth:2,
+          pointRadius:0,
+          tension:0.25,
+          _labels: labels
+        });
+      }
+      const longest = datasets.reduce((a,b)=> a && a._labels.length>=b._labels.length ? a : b, null);
+      if(state.compareChartInstance) state.compareChartInstance.destroy();
+      state.compareChartInstance = new Chart(ctx,{
+        type:"line",
+        data:{ labels: longest ? longest._labels : [], datasets },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{
+            legend:{display:true, labels:{color:"#aab0c2", boxWidth:10, font:{size:11}}},
+            tooltip:{mode:"index", intersect:false, callbacks:{ label:(ctx)=> `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%` }}
+          },
+          scales:{
+            x:{type:"time", time:{unit: days<=1?"hour":(days<=30?"day":"month")}, grid:{color:"#1c212d"}, ticks:{color:"#6d7488", maxTicksLimit:6}},
+            y:{grid:{color:"#1c212d"}, ticks:{color:"#6d7488", callback:(v)=>v+"%"}}
+          }
+        }
+      });
+    }catch(err){
+      holder.innerHTML = `<div class="chart-placeholder">Comparison data unavailable right now — please try again shortly.</div>`;
+      console.error("compare chart failed", err);
+    }
+  }
+
+  document.getElementById("compareCurrencySelect").addEventListener("change", renderCompareChart);
+
+  document.getElementById("vsCurrencySelect").addEventListener("change", async (e)=>{
+    state.vsCurrency = e.target.value;
+    await refreshWatchlistData();
+    renderWatchlist();
+    if(state.selectedDetailId) selectDetail(state.selectedDetailId);
+  });
+
+  // ---------------- boot ----------------
+  fetchEthMarkets();
+  setInterval(fetchEthMarkets, 45000);
+  setInterval(async ()=>{
+    if(state.watchlist.length){
+      await refreshWatchlistData();
+      renderWatchlist();
+      if(state.selectedDetailId){
+        const c = state.watchlistData[state.selectedDetailId];
+        if(c){
+          document.getElementById("detailPrice").textContent = fmtUsd(c.current_price);
+        }
+      }
+    }
+  }, 45000);
+
 })();
 </script>
 </body>
