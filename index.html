@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0c11">
 <title>57eX — Trade the Ethereum economy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
@@ -65,6 +68,8 @@
     height:38px;
     display:flex;
     align-items:center;
+    padding-left:env(safe-area-inset-left);
+    padding-right:env(safe-area-inset-right);
   }
   .ticker-track{
     display:flex;
@@ -98,7 +103,7 @@
     display:flex;
     align-items:center;
     justify-content:space-between;
-    padding:16px 32px;
+    padding:16px max(32px, env(safe-area-inset-right)) 16px max(32px, env(safe-area-inset-left));
     background:rgba(10,12,17,0.86);
     backdrop-filter:blur(14px);
     border-bottom:1px solid var(--line-soft);
@@ -660,12 +665,80 @@
     border-top:1px solid var(--line-soft);
   }
 
+  /* ===== Bottom tab bar (mobile) ===== */
+  .bottom-tabs{
+    display:none;
+    position:fixed;
+    left:0;right:0;bottom:0;
+    z-index:60;
+    background:rgba(13,16,23,0.94);
+    backdrop-filter:blur(18px);
+    border-top:1px solid var(--line-soft);
+    padding:6px max(10px, env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+    justify-content:space-around;
+    align-items:center;
+  }
+  .tab-btn{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:3px;
+    background:none;
+    border:none;
+    color:var(--text-2);
+    font-size:10.5px;
+    font-weight:600;
+    padding:7px 16px;
+    border-radius:12px;
+    min-width:64px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .tab-btn svg{width:20px;height:20px;}
+  .tab-btn.active{color:var(--mint);}
+  .tab-btn:active{background:var(--bg-2);}
+
+  @media (max-width:760px){
+    .bottom-tabs{display:flex;}
+    nav.top{padding-top:calc(14px + env(safe-area-inset-top));}
+    main{padding-bottom:calc(66px + env(safe-area-inset-bottom));}
+    footer{padding-bottom:calc(30px + 66px + env(safe-area-inset-bottom));}
+
+    .modal-overlay{align-items:flex-end;padding:0;}
+    .modal{
+      max-width:100%;
+      border-radius:20px 20px 0 0;
+      padding:20px 18px calc(20px + env(safe-area-inset-bottom));
+      max-height:82vh;
+      overflow-y:auto;
+      animation:sheet-up .2s ease;
+    }
+    @keyframes sheet-up{from{transform:translateY(24px);opacity:0.6;}to{transform:translateY(0);opacity:1;}}
+  }
+
   @media (max-width:920px){
     .hero{grid-template-columns:1fr;padding:36px 20px;}
     .hero-copy h1{font-size:32px;max-width:100%;}
     nav.top{padding:14px 18px;}
     .nav-links{display:none;}
     .markets-wrap{padding:28px 18px 70px;}
+    .table-card{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+    .table-card table{min-width:640px;}
+  }
+
+  @media (max-width:480px){
+    .brand{font-size:19px;}
+    .wallet-btn{padding:9px 14px;font-size:13px;}
+    .hero-copy h1{font-size:27px;}
+    .hero-copy .lede{font-size:15px;}
+    .hero-stats{gap:22px;}
+    .swap-card{padding:18px;}
+    .amount-input{font-size:22px;}
+    .ticker-item{font-size:11.5px;}
+    .detail-head{flex-direction:column;align-items:stretch;}
+    .range-btns{justify-content:space-between;}
+    .range-btns button{flex:1;padding:8px 6px;}
+    .add-coin-row{flex-direction:column;}
+    .add-coin-row select{padding:12px 14px;}
   }
 </style>
 </head>
@@ -694,6 +767,21 @@
       </div>
     </div>
     <button class="wallet-btn" id="navWalletBtn">Connect wallet</button>
+  </nav>
+
+  <nav class="bottom-tabs" id="bottomTabs">
+    <button class="tab-btn active" data-page="trade">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M6 4v12M6 16l-3-3M6 16l3-3M14 16V4M14 4l-3 3M14 4l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Trade</span>
+    </button>
+    <button class="tab-btn" data-page="markets">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 19V13M10 19V8M16 19V11M20 19V5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Markets</span>
+    </button>
+    <button class="tab-btn" id="bottomDevBtn">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13 5l-2 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Developer</span>
+    </button>
   </nav>
 
   <main>
@@ -897,6 +985,22 @@
       </button>
       <button class="wallet-option" data-wallet="WalletConnect">
         <span class="wallet-icon" style="background:#3fe8c422;">🔗</span> WalletConnect
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== Modal: Developer (mobile) ===== -->
+  <div class="modal-overlay" id="modalDev">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Developer</h3>
+        <button class="modal-close" data-close="modalDev">✕</button>
+      </div>
+      <button class="wallet-option" data-dev="api">
+        <span class="wallet-icon" style="background:#3fe8c422;">⚙️</span> API <span class="soon-tag" style="margin-left:auto;">Coming soon</span>
+      </button>
+      <button class="wallet-option" data-dev="docs">
+        <span class="wallet-icon" style="background:#7c6cf022;">📄</span> Docs <span class="soon-tag" style="margin-left:auto;">Coming soon</span>
       </button>
     </div>
   </div>
@@ -1128,10 +1232,18 @@
   });
   document.getElementById("navWalletBtn").addEventListener("click", ()=>openModal("modalWallet"));
 
-  document.querySelectorAll(".wallet-option").forEach(btn=>{
+  document.querySelectorAll("#modalWallet .wallet-option").forEach(btn=>{
     btn.addEventListener("click", ()=>{
       closeModal("modalWallet");
       openModal("modalUnsupported");
+    });
+  });
+
+  document.querySelectorAll("#modalDev .wallet-option").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const which = btn.dataset.dev === "api" ? "API" : "Docs";
+      closeModal("modalDev");
+      showToast(`57eX ${which} — coming soon.`);
     });
   });
 
@@ -1150,15 +1262,21 @@
   });
 
   // ---------------- nav / page switching ----------------
+  function switchPage(target){
+    document.querySelectorAll(".nav-link").forEach(l=>l.classList.toggle("active", l.dataset.page===target));
+    document.querySelectorAll(".tab-btn[data-page]").forEach(b=>b.classList.toggle("active", b.dataset.page===target));
+    document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+    document.getElementById("page-"+target).classList.add("active");
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
   document.querySelectorAll(".nav-link").forEach(link=>{
     link.addEventListener("click",(e)=>{
       e.preventDefault();
-      const target = link.dataset.page;
-      document.querySelectorAll(".nav-link").forEach(l=>l.classList.remove("active"));
-      link.classList.add("active");
-      document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-      document.getElementById("page-"+target).classList.add("active");
+      switchPage(link.dataset.page);
     });
+  });
+  document.querySelectorAll(".tab-btn[data-page]").forEach(btn=>{
+    btn.addEventListener("click", ()=>switchPage(btn.dataset.page));
   });
 
   // ---------------- developer menu ----------------
@@ -1182,6 +1300,7 @@
       devBtn.classList.remove("open");
     });
   });
+  document.getElementById("bottomDevBtn").addEventListener("click", ()=>openModal("modalDev"));
 
   // ================= MARKETS PAGE =================
   const searchInput = document.getElementById("coinSearchInput");
